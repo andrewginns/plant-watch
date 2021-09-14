@@ -1,4 +1,4 @@
-name: base
+name: plant_watch
 channels:
   - plotly
   - anaconda
