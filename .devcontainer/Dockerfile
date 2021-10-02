@@ -13,6 +13,10 @@ COPY environment.yml* .devcontainer/noop.txt /tmp/conda-tmp/
 RUN if [ -f "/tmp/conda-tmp/environment.yml" ]; then /opt/conda/bin/conda env update -n base -f /tmp/conda-tmp/environment.yml; fi \
     && rm -rf /tmp/conda-tmp
 
+# Copy SSH key for git private repos
+ADD .ssh/id_ed25519 /root/.ssh/id_rsa
+RUN chmod 600 /root/.ssh/id_rsa
+
 # [Optional] Uncomment to install a different version of Python than the default
 # RUN conda install -y python=3.6 \
 #     && pip install --no-cache-dir pipx \
