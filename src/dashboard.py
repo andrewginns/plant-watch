@@ -85,7 +85,7 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
 
         # Calculate metrics from loaded data
         metrics_df = st.empty()
-        metrics_df.dataframe(calc_metrics(sensor, init_df))
+        metrics_df.text(calc_metrics(init_df))
 
         # Assign the ouput streamlit objects to dict object
         sensor_dict[sensor].append(frame)
@@ -157,8 +157,8 @@ def poll_sensors(sensor_dict: dict, available_sensors: dict, today: date):
             fig = add_scatter(sensor_dict, sensor, added_rows, fig)
 
             # Add calculated metrics from latest data
-            sensor_dict[sensor][3].dataframe(
-                calc_metrics(sensor, sensor_dict[sensor][2]))
+            sensor_dict[sensor][3].text(
+                calc_metrics(sensor_dict[sensor][2]))
             # Write to file
             # plot_df.to_csv(data_path / f'{sensor}.csv')
 
@@ -170,13 +170,14 @@ def poll_sensors(sensor_dict: dict, available_sensors: dict, today: date):
     return sensor_dict
 
 
-def calc_metrics(sensor: str, sensor_df: pd.DataFrame) -> pd.DataFrame:
+def calc_metrics(sensor_df: pd.DataFrame) -> str:
     last_10 = sensor_df.iloc[-10:].mean().values[0]
     last_50 = sensor_df.iloc[-50:].mean().values[0]
     all = sensor_df.mean().values[0]
-    return pd.DataFrame.from_dict({"Last 10 avg.": [last_10],
-                                   "Last 50 avg.": [last_50],
-                                   "Alltime avg.": [all]})
+    output_df = pd.DataFrame.from_dict({"Last 10 avg.": [last_10],
+                                        "Last 50 avg.": [last_50],
+                                        "Alltime avg.": [all]})
+    return output_df.to_string(index=False)
 
 
 def main() -> None:
@@ -189,7 +190,6 @@ def main() -> None:
 
     # Recieve new data
     updated_readings = poll_sensors(sensor_dict, available_sensors, today)
-    print(updated_readings)
 
 
 if __name__ == "__main__":
