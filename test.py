@@ -39,7 +39,7 @@ def store_data(data):
     pass
 
 
-def streamlit_init_layout(available_sensors: list) -> pd.DataFrame:
+def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
     st.title("Plant Monitoring")
     st.image(Image.open(image_path / 'succulent.png'), width=200)
     # column = st.selectbox("Sensor to plot", available_sensors)
@@ -53,9 +53,15 @@ def streamlit_init_layout(available_sensors: list) -> pd.DataFrame:
         with st.expander(f"{sensor.capitalize()} dataframe"):
             frame = st.dataframe(init_df)
 
+        domain_pd = pd.to_datetime(
+            [today - timedelta(days=30), today]).astype(int) / 10 ** 6
+
         # Plot (Plotly would be preferred but is not supported by the add_rows function)
         chart = st.altair_chart(alt.Chart(init_df).mark_line(point=True).encode(
-            x='timestamp',
+            x=alt.X('timestamp',
+                    # timeunit='yearmonthday',
+                    scale=alt.Scale(domain=list(domain_pd))
+                    ),
             y=sensor,
             tooltip=[sensor.__str__(), 'timestamp']
         ).interactive(),
@@ -107,7 +113,7 @@ def add_data(sensor_dict: dict, available_sensors: list, today: date):
 
         elif sensor == 'temperature':
             # Simulate sensor reading
-            sensor_val = np.random.randint(0, 500)
+            sensor_val = np.random.randint(0, 5)
 
             # Add a row to the dataframe
             added_rows = update_data(
@@ -125,14 +131,16 @@ def add_data(sensor_dict: dict, available_sensors: list, today: date):
             print(f'{sensor} not configured with polling logic')
             continue
 
+    # Plot all sensors on a plotly graph
     sensor_dict['all'].plotly_chart(fig)
 
 
 def main():
-    available_sensors = ['moisture', 'temperature']
-    sensor_dict = streamlit_init_layout(available_sensors)
-
     today = date.today()
+
+    available_sensors = ['moisture', 'temperature']
+    sensor_dict = streamlit_init_layout(available_sensors, today)
+
     for _ in range(0, 5):
 
         # Simulate sensor polling - every x seconds receive data from sensors
