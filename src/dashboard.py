@@ -62,6 +62,9 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
         # Streamlit expects columns for each sensor
         init_df = load_latest_data(data_path / f"{sensor}.csv")
 
+        # Stores objects returned by function
+        sensor_dict[sensor] = []
+
         st.markdown(f"## {sensor.capitalize()}")
         with st.expander(f"{sensor.capitalize()} dataframe"):
             frame = st.dataframe(init_df)
@@ -80,8 +83,15 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
         ).interactive(),
             use_container_width=True)
 
-        # Assign the ouput streamlit widgets to the dict object
-        sensor_dict[sensor] = [frame, chart, init_df]
+        # Calculate metrics from loaded data
+        metrics_df = st.empty()
+        metrics_df.dataframe(calc_metrics(sensor, init_df))
+
+        # Assign the ouput streamlit objects to dict object
+        sensor_dict[sensor].append(frame)
+        sensor_dict[sensor].append(chart)
+        sensor_dict[sensor].append(init_df)
+        sensor_dict[sensor].append(metrics_df)
 
     st.markdown("## All Sensors")
     sensor_dict['all'] = st.empty()
@@ -96,6 +106,8 @@ def update_data(sensor_str: str, sensor_val, current_date, sensor_dict: dict) ->
             "timestamp": current_date.strftime("%Y-%m-%d")
         }
     )
+    # Explicitly casting data column to float breaks chart updating
+    # add_df[sensor_str] = add_df[sensor_str].astype(float)
     add_df['timestamp'] = pd.to_datetime(add_df['timestamp'])
 
     # In-place update the sensor's altair dataframe and chart
@@ -108,17 +120,18 @@ def add_scatter(sensor_dict: dict, sensor: str, added_rows: pd.DataFrame, fig: p
     # TODO: Should probably be a call to a classes df object
     latest_df = sensor_dict[sensor][2].append(added_rows, ignore_index=True)
     # Add a scatter to the plotly graph objects
-    fig.add_scatter(x=latest_df['timestamp'],
-                    y=latest_df[sensor],
-                    name=sensor,
-                    marker={"color": configured_sensors[sensor]}
-                    )
+    fig.add_scatter(
+        x=latest_df['timestamp'],
+        y=latest_df[sensor],
+        name=sensor,
+        marker={"color": configured_sensors[sensor]}
+    )
     return fig
 
 
 def poll_sensors(sensor_dict: dict, available_sensors: dict, today: date):
     # Simulate sensor polling - every x seconds receive data from sensors
-    for _ in range(0, 5):
+    for _ in range(0, 10):
         fig = px.line()
         for sensor in available_sensors:
             print(f"Updating {sensor}")
@@ -143,6 +156,9 @@ def poll_sensors(sensor_dict: dict, available_sensors: dict, today: date):
             # Plot data to scatter
             fig = add_scatter(sensor_dict, sensor, added_rows, fig)
 
+            # Add calculated metrics from latest data
+            sensor_dict[sensor][3].dataframe(
+                calc_metrics(sensor, sensor_dict[sensor][2]))
             # Write to file
             # plot_df.to_csv(data_path / f'{sensor}.csv')
 
@@ -154,8 +170,13 @@ def poll_sensors(sensor_dict: dict, available_sensors: dict, today: date):
     return sensor_dict
 
 
-def calc_metrics(df: pd.DataFrame) -> None:
-    pass
+def calc_metrics(sensor: str, sensor_df: pd.DataFrame) -> pd.DataFrame:
+    last_10 = sensor_df.iloc[-10:].mean().values[0]
+    last_50 = sensor_df.iloc[-50:].mean().values[0]
+    all = sensor_df.mean().values[0]
+    return pd.DataFrame.from_dict({"Last 10 avg.": [last_10],
+                                   "Last 50 avg.": [last_50],
+                                   "Alltime avg.": [all]})
 
 
 def main() -> None:
