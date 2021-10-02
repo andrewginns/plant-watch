@@ -9,6 +9,8 @@ import plotly.express as px
 import streamlit as st
 from PIL import Image
 
+from config.config import configured_sensors, data_path, image_path
+
 """
 # Data Flow
 1. Load historical data and default sensor
@@ -26,15 +28,11 @@ This should be configurable based on the plant that is being monitored.
 3. Calculate averages over time period
 """
 
-data_path = Path('data')
-image_path = Path('images')
-
 
 class Sensor():
-
-    def __init__(self) -> None:
-        pass
-    pass
+    def __init__(self, name) -> None:
+        self.name = name
+        self.df = pd.DataFrame
 
 
 def load_latest_data(file_path: Path) -> pd.DataFrame:
@@ -58,7 +56,6 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
     """Initialisation of streamlit app"""
     st.title("Plant Monitoring")
     st.image(Image.open(image_path / 'succulent.png'), width=200)
-    # column = st.selectbox("Sensor to plot", available_sensors)
 
     sensor_dict = {}
     for sensor in available_sensors:
@@ -84,15 +81,15 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
             use_container_width=True)
 
         # Assign the ouput streamlit widgets to the dict object
-        sensor_dict[sensor] = [frame, chart]
+        sensor_dict[sensor] = [frame, chart, init_df]
 
     st.markdown("## All Sensors")
     sensor_dict['all'] = st.empty()
-
     return sensor_dict
 
 
 def update_data(sensor_str: str, sensor_val, current_date, sensor_dict: dict) -> pd.DataFrame:
+    """Add new data from sensor to the streamlit charts"""
     add_df = pd.DataFrame.from_dict(
         {
             sensor_str: [sensor_val],
@@ -100,7 +97,6 @@ def update_data(sensor_str: str, sensor_val, current_date, sensor_dict: dict) ->
         }
     )
     add_df['timestamp'] = pd.to_datetime(add_df['timestamp'])
-    # add_df.set_index('timestamp', inplace=True)
 
     # In-place update the sensor's altair dataframe and chart
     sensor_dict[sensor_str][0].add_rows(add_df)
@@ -108,51 +104,54 @@ def update_data(sensor_str: str, sensor_val, current_date, sensor_dict: dict) ->
     return add_df
 
 
-def add_scatter(sensor: str, added_rows: pd.DataFrame, fig: px.line):
+def add_scatter(sensor_dict: dict, sensor: str, added_rows: pd.DataFrame, fig: px.line):
     # TODO: Should probably be a call to a classes df object
-    latest_df = load_latest_data(data_path /
-                                 f"{sensor}.csv").append(added_rows, ignore_index=True)
+    latest_df = sensor_dict[sensor][2].append(added_rows, ignore_index=True)
     # Add a scatter to the plotly graph objects
     fig.add_scatter(x=latest_df['timestamp'],
                     y=latest_df[sensor],
-                    name=sensor)
+                    name=sensor,
+                    marker={"color": configured_sensors[sensor]}
+                    )
     return fig
 
 
-def add_data(sensor_dict: dict, available_sensors: list, today: date) -> None:
-    fig = px.line()
-    for sensor in available_sensors:
-        print(f"Updating {sensor}")
-        if sensor == 'moisture':
-            # Simulate sensor reading
-            sensor_val = np.random.randint(0, 100)
+def poll_sensors(sensor_dict: dict, available_sensors: dict, today: date):
+    # Simulate sensor polling - every x seconds receive data from sensors
+    for _ in range(0, 5):
+        fig = px.line()
+        for sensor in available_sensors:
+            print(f"Updating {sensor}")
 
-            # Add a row to the dataframe
+            if sensor == 'moisture':
+                # Simulate sensor reading
+                sensor_val = np.random.randint(0, 100)
+            elif sensor == 'temperature':
+                # Simulate sensor reading
+                sensor_val = np.random.randint(10, 30)
+            else:
+                print(f'{sensor} not configured with polling logic')
+                continue
+
+            # Add new readings to visualisations
             added_rows = update_data(
                 sensor, sensor_val, today, sensor_dict)
+            # Add new readings to dataframe
+            sensor_dict[sensor][2] = sensor_dict[sensor][2].append(
+                added_rows, ignore_index=True)
 
-            fig = add_scatter(sensor, added_rows, fig)
+            # Plot data to scatter
+            fig = add_scatter(sensor_dict, sensor, added_rows, fig)
+
             # Write to file
             # plot_df.to_csv(data_path / f'{sensor}.csv')
 
-        elif sensor == 'temperature':
-            # Simulate sensor reading
-            sensor_val = np.random.randint(10, 30)
+        # Plot all sensors on a plotly graph
+        sensor_dict['all'].plotly_chart(fig)
 
-            # Add a row to the dataframe
-            added_rows = update_data(
-                sensor, sensor_val, today, sensor_dict)
-
-            fig = add_scatter(sensor, added_rows, fig)
-            # Write to file
-            # plot_df.to_csv(data_path / f'{sensor}.csv')
-
-        else:
-            print(f'{sensor} not configured with polling logic')
-            continue
-
-    # Plot all sensors on a plotly graph
-    sensor_dict['all'].plotly_chart(fig)
+        today += timedelta(days=1)
+        time.sleep(0.5)
+    return sensor_dict
 
 
 def calc_metrics(df: pd.DataFrame) -> None:
@@ -162,14 +161,14 @@ def calc_metrics(df: pd.DataFrame) -> None:
 def main() -> None:
     # Define the current date and sensors
     today = date.today()
-    available_sensors = ['moisture', 'temperature']
+    available_sensors = configured_sensors.keys()
+
+    # Initialise from saved data
     sensor_dict = streamlit_init_layout(available_sensors, today)
 
-    for _ in range(0, 5):
-        # Simulate sensor polling - every x seconds receive data from sensors
-        add_data(sensor_dict, available_sensors, today)
-        today += timedelta(days=1)
-        time.sleep(0.5)
+    # Recieve new data
+    updated_readings = poll_sensors(sensor_dict, available_sensors, today)
+    print(updated_readings)
 
 
 if __name__ == "__main__":
