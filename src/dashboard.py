@@ -1,5 +1,5 @@
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import altair as alt
@@ -69,9 +69,9 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
         with st.expander(f"{sensor.capitalize()} dataframe"):
             frame = st.dataframe(init_df)
 
-        # Set the axis limits dynamically to the last month of data
+        # Set the axis limits dynamically to the last month of data - TODO: Needs to be dynamic with sensor refreshes
         domain_pd = pd.to_datetime(
-            [today - timedelta(days=30), today]).astype(int) / 10 ** 6
+            [today - timedelta(days=7), today + timedelta(days=1)]).astype(int) / 10 ** 6
 
         # Plot (Plotly would be preferred but is not supported by the add_rows function)
         chart = st.altair_chart(alt.Chart(init_df).mark_line(point=True).encode(
@@ -98,14 +98,15 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
     return sensor_dict
 
 
-def update_data(sensor_str: str, sensor_val, current_date, sensor_dict: dict) -> pd.DataFrame:
+def update_data(sensor_str: str, sensor_val, current_time, sensor_dict: dict) -> pd.DataFrame:
     """Add new data from sensor to the streamlit charts"""
     add_df = pd.DataFrame.from_dict(
         {
             sensor_str: [sensor_val],
-            "timestamp": current_date.strftime("%Y-%m-%d")
+            "timestamp": current_time.strftime("%Y-%m-%dT%H:%M:%S")
         }
     )
+    print(current_time)
     # Explicitly casting data column to float breaks chart updating
     # add_df[sensor_str] = add_df[sensor_str].astype(float)
     add_df['timestamp'] = pd.to_datetime(add_df['timestamp'])
@@ -116,7 +117,7 @@ def update_data(sensor_str: str, sensor_val, current_date, sensor_dict: dict) ->
     return add_df
 
 
-def add_scatter(sensor_dict: dict, sensor: str, added_rows: pd.DataFrame, fig: px.line):
+def add_scatter(sensor_dict: dict, sensor: str, added_rows: pd.DataFrame, fig: px.line) -> px.line:
     # TODO: Should probably be a call to a classes df object
     latest_df = sensor_dict[sensor][2].append(added_rows, ignore_index=True)
     # Add a scatter to the plotly graph objects
@@ -129,51 +130,48 @@ def add_scatter(sensor_dict: dict, sensor: str, added_rows: pd.DataFrame, fig: p
     return fig
 
 
-def poll_sensors(sensor_dict: dict, available_sensors: dict, today: date):
-    # Simulate sensor polling - every x seconds receive data from sensors
-    for _ in range(0, 10):
-        fig = px.line()
-        for sensor in available_sensors:
-            print(f"Updating {sensor}")
+def poll_sensors(sensor_dict: dict, available_sensors: dict, time_now: datetime) -> dict:
+    # For each of the sensors read the value
+    fig = px.line()
+    for sensor in available_sensors:
+        print(f"Updating {sensor}")
 
-            if sensor == 'moisture':
-                # Simulate sensor reading
-                sensor_val = np.random.randint(0, 100)
-            elif sensor == 'temperature':
-                # Simulate sensor reading
-                sensor_val = np.random.randint(10, 30)
-            else:
-                print(f'{sensor} not configured with polling logic')
-                continue
+        if sensor == 'moisture':
+            # Simulate sensor reading
+            sensor_val = np.random.randint(0, 100)
+        elif sensor == 'temperature':
+            # Simulate sensor reading
+            sensor_val = np.random.randint(10, 30)
+        else:
+            print(f'{sensor} not configured with polling logic')
+            continue
 
-            # Add new readings to visualisations
-            added_rows = update_data(
-                sensor, sensor_val, today, sensor_dict)
-            # Add new readings to dataframe
-            sensor_dict[sensor][2] = sensor_dict[sensor][2].append(
-                added_rows, ignore_index=True)
+        # Add new readings to visualisations
+        added_rows = update_data(
+            sensor, sensor_val, time_now, sensor_dict)
+        # Add new readings to dataframe
+        sensor_dict[sensor][2] = sensor_dict[sensor][2].append(
+            added_rows, ignore_index=True)
 
-            # Plot data to scatter
-            fig = add_scatter(sensor_dict, sensor, added_rows, fig)
+        # Plot data to scatter
+        fig = add_scatter(sensor_dict, sensor, added_rows, fig)
 
-            # Add calculated metrics from latest data
-            sensor_dict[sensor][3].text(
-                calc_metrics(sensor_dict[sensor][2]))
-            # Write to file
-            # plot_df.to_csv(data_path / f'{sensor}.csv')
+        # Add calculated metrics from latest data
+        sensor_dict[sensor][3].text(
+            calc_metrics(sensor_dict[sensor][2]))
+        # Write to file
+        # plot_df.to_csv(data_path / f'{sensor}.csv')
 
-        # Plot all sensors on a plotly graph
-        sensor_dict['all'].plotly_chart(fig)
+    # Plot all sensors on a plotly graph
+    sensor_dict['all'].plotly_chart(fig)
 
-        today += timedelta(days=1)
-        time.sleep(0.5)
     return sensor_dict
 
 
 def calc_metrics(sensor_df: pd.DataFrame) -> str:
-    last_10 = sensor_df.iloc[-10:].mean().values[0]
-    last_50 = sensor_df.iloc[-50:].mean().values[0]
-    all = sensor_df.mean().values[0]
+    last_10 = sensor_df.iloc[-10:].mean(numeric_only=True).values[0]
+    last_50 = sensor_df.iloc[-50:].mean(numeric_only=True).values[0]
+    all = sensor_df.mean(numeric_only=True).values[0]
     output_df = pd.DataFrame.from_dict({"Last 10 avg.": [last_10],
                                         "Last 50 avg.": [last_50],
                                         "Alltime avg.": [all]})
@@ -181,15 +179,19 @@ def calc_metrics(sensor_df: pd.DataFrame) -> str:
 
 
 def main() -> None:
-    # Define the current date and sensors
-    today = date.today()
+    # Define the sensors and current time
     available_sensors = configured_sensors.keys()
+    time_start = datetime.now()
 
     # Initialise from saved data
-    sensor_dict = streamlit_init_layout(available_sensors, today)
+    sensor_dict = streamlit_init_layout(available_sensors, time_start)
 
     # Recieve new data
-    updated_readings = poll_sensors(sensor_dict, available_sensors, today)
+    while True:
+        time_now = datetime.now()
+        updated_readings = poll_sensors(
+            sensor_dict, available_sensors, time_now)
+        time.sleep(30)
 
 
 if __name__ == "__main__":
