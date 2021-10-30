@@ -98,7 +98,7 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
     return sensor_dict
 
 
-def update_data(sensor_str: str, sensor_val, current_time, sensor_dict: dict) -> pd.DataFrame:
+def update_data(sensor_str: str, sensor_val: float, current_time: datetime, sensor_dict: dict) -> pd.DataFrame:
     """Add new data from sensor to the streamlit charts"""
     add_df = pd.DataFrame.from_dict(
         {
