@@ -11,22 +11,22 @@ from PIL import Image
 
 from config.config import configured_sensors, data_path, image_path
 
-"""
-# Data Flow
-1. Load historical data and default sensor
-2. Sensors send updated data
-3. Add data to relevant datframe
-4. Dynamic update of relevant chart
-5. Write update to historical file
+# """
+# # Data Flow
+# 1. Load historical data and default sensor
+# 2. Sensors send updated data
+# 3. Add data to relevant datframe
+# 4. Dynamic update of relevant chart
+# 5. Write update to historical file
 
-# Usage
-This should be configurable based on the plant that is being monitored.
+# # Usage
+# This should be configurable based on the plant that is being monitored.
 
-1. Detct time since last watering
-    * Some % change in the moisture level
-2. Estimate time till next watering is required
-3. Calculate averages over time period
-"""
+# 1. Detct time since last watering
+#     * Some % change in the moisture level
+# 2. Estimate time till next watering is required
+# 3. Calculate averages over time period
+# """
 
 
 class Sensor:
@@ -78,30 +78,32 @@ def create_sensor_dict(
     sensor_dict[sensor] = []
 
     st.markdown(f"## {sensor.capitalize()}")
-    with st.expander(f"{sensor.capitalize()} dataframe"):
-        frame = st.dataframe(plot_df)
-
-    # Set the axis limits dynamically to the last month of data - TODO: Needs to be dynamic with sensor refreshes
-
-    domain_pd = calc_chart_limits(current_day)
-
-    # Plot (Plotly would be preferred but is not supported by the add_rows function)
-    chart = st.empty()
-    chart.altair_chart(
-        alt.Chart(plot_df)
-        .mark_line(point=True)
-        .encode(
-            x=alt.X("timestamp", scale=alt.Scale(domain=list(domain_pd))),
-            y=sensor,
-            tooltip=[sensor.__str__(), "timestamp"],
-        )
-        .interactive(),
-        use_container_width=True,
-    )
 
     # Calculate metrics from loaded data
     metrics_df = st.empty()
     metrics_df.text(calc_metrics(plot_df))
+
+    # Datframe with historical data
+    with st.expander(f"{sensor.capitalize()} dataframe"):
+        frame = st.dataframe(plot_df)
+
+    # Set the axis limits dynamically to the last month of data - TODO: Needs to be dynamic with sensor refreshes
+    domain_pd = calc_chart_limits(current_day)
+
+    # Plot (Plotly would be preferred but is not supported by the add_rows function)
+    with st.expander(f"{sensor.capitalize()} timeseries"):
+        chart = st.empty()
+        chart.altair_chart(
+            alt.Chart(plot_df)
+            .mark_line(point=True)
+            .encode(
+                x=alt.X("timestamp", scale=alt.Scale(domain=list(domain_pd))),
+                y=sensor,
+                tooltip=[sensor.__str__(), "timestamp"],
+            )
+            .interactive(),
+            use_container_width=True,
+        )
 
     # Assign the ouput streamlit objects to the sensor dict object
     sensor_dict[sensor].append(frame)  # Index 0 - Streamlit df
@@ -114,10 +116,12 @@ def create_sensor_dict(
 
 def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
     """Initialisation of streamlit app"""
-    st.title("Plant Monitoring")
-    st.image(Image.open(image_path / "succulent.png"), width=200)
-
     sensor_dict = {}
+    st.title("Plant Monitoring")
+    st.image(Image.open(image_path / "snake.png"), width=200)
+    hero = st.empty()
+    hero.header("Placeholder")
+
     for sensor in available_sensors:
         # Streamlit expects columns for each sensor
         plot_df = load_latest_data(data_path / f"{sensor}.csv")
@@ -125,7 +129,7 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
 
     st.markdown("## All Sensors")
     sensor_dict["all"] = st.empty()
-    return sensor_dict
+    return sensor_dict, hero
 
 
 def update_data(
@@ -169,6 +173,7 @@ def poll_sensors(
 ) -> dict:
     # For each of the sensors read the value
     fig = px.line()
+    new_vals = []
     for sensor in available_sensors:
         print(f"Updating {sensor}")
 
@@ -182,6 +187,7 @@ def poll_sensors(
             print(f"{sensor} not configured with polling logic")
             continue
 
+        new_vals.append(sensor_val)
         # Add new readings to visualisations
         added_rows = update_data(sensor, sensor_val, time_now, sensor_dict)
         # Add new readings to dataframe
@@ -200,46 +206,62 @@ def poll_sensors(
     # Plot all sensors on a plotly graph
     sensor_dict["all"].plotly_chart(fig)
 
-    return sensor_dict
+    return sensor_dict, new_vals
 
 
-def main() -> None:
+def create_hero_string(available_sensors, new_vals):
+    str_ar = []
+    sensor_list = list(available_sensors)
+    for idx in range(0, len(sensor_list)):
+        str_ar.append(f"# {sensor_list[idx].capitalize()}: {new_vals[idx]}")
+    return "\n".join(str_ar)
+
+
+def monitor_plants(curr_time: datetime):
+    print(f"\nCurrent Time is {curr_time}")
     # Define the sensors and current time
     available_sensors = configured_sensors.keys()
-    time_start = datetime.now()
-
     # Initialise from saved data
-    sensor_dict = streamlit_init_layout(available_sensors, time_start)
+    sensor_dict, hero = streamlit_init_layout(available_sensors, curr_time)
 
     # Recieve new data
     while True:
         time_now = datetime.now()
-        updated_readings = poll_sensors(sensor_dict, available_sensors, time_now)
-        time.sleep(10)
+        updated_readings, new_vals = poll_sensors(
+            sensor_dict, available_sensors, time_now
+        )
+        time.sleep(5)
+        hero_string = create_hero_string(available_sensors, new_vals)
+        hero.markdown(hero_string)
 
-        if (time_now - time_start) < timedelta(days=1):
-            # Update the start date
-            time_start = time_now
-            # Updated the chart axes
-            new_lims = calc_chart_limits(time_start)
+        # print((time_now - curr_time) < timedelta(days=1))
 
-            # for sensor in [key for key in sensor_dict][:-1]:
-            #     plot_df = load_latest_data(data_path / f"{sensor}.csv")
-            #     chart = st.empty()
-            #     chart.altair_chart(
-            #         alt.Chart(plot_df)
-            #         .mark_line(point=True)
-            #         .encode(
-            #             x=alt.X("timestamp", scale=alt.Scale(domain=list(new_lims))),
-            #             y=sensor,
-            #             tooltip=[sensor.__str__(), "timestamp"],
-            #         )
-            #         .interactive(),
-            #         use_container_width=True,
-            #     )
+        # if (time_now - curr_time) < timedelta(days=1):
+        #     # Update the start date
+        #     print("Updating chart lims")
 
-        # st.altair_chart(alt.Chart(load_latest_data(data_path / f"moisture.csv")))
+        #     curr_time = time_now + timedelta(days=1)
+        #     # Updated the chart axes
+        #     new_lims = calc_chart_limits(curr_time)
 
+        #     # for sensor in [key for key in sensor_dict][:-1]:
+        #     #     plot_df = load_latest_data(data_path / f"{sensor}.csv")
+        #     #     chart = st.empty()
+        #     #     chart.altair_chart(
+        #     #         alt.Chart(plot_df)
+        #     #         .mark_line(point=True)
+        #     #         .encode(
+        #     #             x=alt.X("timestamp", scale=alt.Scale(domain=list(new_lims))),
+        #     #             y=sensor,
+        #     #             tooltip=[sensor.__str__(), "timestamp"],
+        #     #         )
+        #     #         .interactive(),
+        #     #         use_container_width=True,
+        #     #     )
+
+        # # st.altair_chart(alt.Chart(load_latest_data(data_path / f"moisture.csv")))
+
+        # # This really should work, not sure why it doesn't
         # for sensor in sensor_dict:
         #     updated_readings[sensor][1].altair_chart(
         #         alt.Chart(load_latest_data(data_path / f"{sensor}.csv"))
@@ -248,7 +270,8 @@ def main() -> None:
         #             x=alt.X(
         #                 "timestamp",
         #                 scale=alt.Scale(
-        #                     domain=list([1635766338263.342, 1635966338263.342])
+        #                     # domain=list([1635766338263.342, 1635966338263.342])
+        #                     domain=list(new_lims)
         #                 ),
         #             ),
         #             y=sensor,
@@ -257,6 +280,11 @@ def main() -> None:
         #         .interactive(),
         #         use_container_width=True,
         #     )
+
+
+def main() -> None:
+    time_start = datetime.now()
+    monitor_plants(time_start)
 
 
 if __name__ == "__main__":
