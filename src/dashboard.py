@@ -117,10 +117,26 @@ def create_sensor_dict(
 def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
     """Initialisation of streamlit app"""
     sensor_dict = {}
-    st.title("Plant Monitoring")
-    st.image(Image.open(image_path / "snake.png"), width=200)
-    hero = st.empty()
-    hero.header("Placeholder")
+    st.markdown(
+        "<h1 style='text-align: center; color: white;'>Plant Monitoring</h1>",
+        unsafe_allow_html=True,
+    )
+
+    # Centre the image
+    _left, mid, _right = st.columns(3)
+    with mid:
+        st.image(Image.open(image_path / "snake.png"), use_column_width=True)
+
+        # Create a placeholder for sensor readouts
+        hero = st.empty()
+        hero.markdown(
+            "<h1 style='text-align: center; color: white;'>Sensors</h1>",
+            unsafe_allow_html=True,
+        )
+
+    # Add spacer
+    for _ in range(0, 10):
+        st.markdown("#")
 
     for sensor in available_sensors:
         # Streamlit expects columns for each sensor
@@ -213,7 +229,7 @@ def create_hero_string(available_sensors, new_vals):
     str_ar = []
     sensor_list = list(available_sensors)
     for idx in range(0, len(sensor_list)):
-        str_ar.append(f"# {sensor_list[idx].capitalize()}: {new_vals[idx]}")
+        str_ar.append(f"{sensor_list[idx].capitalize()}:<br>{new_vals[idx]}")
     return "\n".join(str_ar)
 
 
@@ -232,7 +248,10 @@ def monitor_plants(curr_time: datetime):
         )
         time.sleep(5)
         hero_string = create_hero_string(available_sensors, new_vals)
-        hero.markdown(hero_string)
+        hero.markdown(
+            f"<h1 style='text-align: center; color: White;'>{hero_string}</h1>",
+            unsafe_allow_html=True,
+        )
 
         # print((time_now - curr_time) < timedelta(days=1))
 
