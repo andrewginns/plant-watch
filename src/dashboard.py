@@ -11,23 +11,6 @@ from PIL import Image
 
 from config.config import configured_sensors, data_path, image_path
 
-# """
-# # Data Flow
-# 1. Load historical data and default sensor
-# 2. Sensors send updated data
-# 3. Add data to relevant datframe
-# 4. Dynamic update of relevant chart
-# 5. Write update to historical file
-
-# # Usage
-# This should be configurable based on the plant that is being monitored.
-
-# 1. Detct time since last watering
-#     * Some % change in the moisture level
-# 2. Estimate time till next watering is required
-# 3. Calculate averages over time period
-# """
-
 
 class Sensor:
     def __init__(self, name) -> None:
