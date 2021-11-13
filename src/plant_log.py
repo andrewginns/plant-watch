@@ -1,6 +1,6 @@
 import csv
 import time
-from datetime import date
+from datetime import datetime
 
 import numpy as np
 
@@ -52,7 +52,7 @@ def main():
             moisture_ar.append(m)
             time.sleep(0.1)
 
-        now = date.today()
+        now = datetime.now()
         avg_reading = np.median(moisture_ar)
         print(f"Average reading: {avg_reading}")
 
@@ -60,7 +60,7 @@ def main():
             sensor_writer = csv.writer(
                 csvfile, delimiter=",", quotechar="|", quoting=csv.QUOTE_MINIMAL
             )
-            sensor_writer.writerow([avg_reading, now.strftime("%Y-%m-%d")])
+            sensor_writer.writerow([avg_reading, now.strftime("%Y-%m-%d %H:%M:%S")])
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from PIL import Image
+from scipy.interpolate import interp1d
 
 from config.config import configured_sensors, data_path, image_path
 
@@ -20,7 +21,7 @@ class Sensor:
 
 def load_latest_data(file_path: Path) -> pd.DataFrame:
     # Load data from the file used to store historical readings
-    df = pd.read_csv(file_path).drop("Unnamed: 0", axis=1)
+    df = pd.read_csv(file_path)
 
     # Explicitly casting data column to float breaks chart updating
     # df[df.columns[0]] = df[df.columns[0]].astype(float)
@@ -123,7 +124,7 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
 
     for sensor in available_sensors:
         # Streamlit expects columns for each sensor
-        plot_df = load_latest_data(data_path / f"{sensor}.csv")
+        plot_df = load_latest_data(data_path / f"{sensor}_log.csv")
         sensor_dict = create_sensor_dict(plot_df, sensor, sensor_dict, today)
 
     st.markdown("## All Sensors")
@@ -167,9 +168,12 @@ def add_scatter(
     return fig
 
 
-def poll_sensors(
-    sensor_dict: dict, available_sensors: dict, time_now: datetime
-) -> dict:
+def load_latest_reading(sensor: str) -> float:
+    sensor_file = data_path / f"{sensor}_log.csv"
+    return pd.read_csv(sensor_file).tail(1)
+
+
+def poll_sensors(sensor_dict: dict, available_sensors: dict) -> dict:
     # For each of the sensors read the value
     fig = px.line()
     new_vals = []
@@ -177,14 +181,22 @@ def poll_sensors(
         print(f"Updating {sensor}")
 
         if sensor == "moisture":
-            # Simulate sensor reading
-            sensor_val = np.random.randint(0, 100)
+            last_reading = load_latest_reading(sensor)
         elif sensor == "temperature":
-            # Simulate sensor reading
-            sensor_val = np.random.randint(10, 30)
+            last_reading = load_latest_reading(sensor)
         else:
             print(f"{sensor} not configured with polling logic")
             continue
+
+        convert_cap_to_moisture = interp1d(
+            [2000, 1400], [0, 100], fill_value="extrapolate"
+        )
+        sensor_val = convert_cap_to_moisture(last_reading[sensor].values[0]).flatten()[
+            0
+        ]
+        time_now = datetime.strptime(
+            last_reading["timestamp"].values[0], "%Y-%m-%d %H:%M:%S"
+        )
 
         new_vals.append(sensor_val)
         # Add new readings to visualisations
@@ -212,7 +224,7 @@ def create_hero_string(available_sensors, new_vals):
     str_ar = []
     sensor_list = list(available_sensors)
     for idx in range(0, len(sensor_list)):
-        str_ar.append(f"{sensor_list[idx].capitalize()}:<br>{new_vals[idx]}")
+        str_ar.append(f"{sensor_list[idx].capitalize()}:<br>{new_vals[idx]:.2f}")
     return "\n".join(str_ar)
 
 
@@ -225,10 +237,8 @@ def monitor_plants(curr_time: datetime):
 
     # Recieve new data
     while True:
-        time_now = datetime.now()
-        updated_readings, new_vals = poll_sensors(
-            sensor_dict, available_sensors, time_now
-        )
+        # time_now = datetime.now()
+        updated_readings, new_vals = poll_sensors(sensor_dict, available_sensors)
         time.sleep(5)
         hero_string = create_hero_string(available_sensors, new_vals)
         hero.markdown(
