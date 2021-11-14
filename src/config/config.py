@@ -16,3 +16,6 @@ image_path = ROOT_DIR / "images"
 ######################################################################################################
 # Sensor Config
 moisture_pin = 0
+
+sensor_dry = 2000
+sensor_wet = 1400

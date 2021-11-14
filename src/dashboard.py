@@ -10,7 +10,13 @@ import streamlit as st
 from PIL import Image
 from scipy.interpolate import interp1d
 
-from config.config import configured_sensors, data_path, image_path
+from config.config import (
+    configured_sensors,
+    data_path,
+    image_path,
+    sensor_dry,
+    sensor_wet,
+)
 
 
 class Sensor:
@@ -98,6 +104,12 @@ def create_sensor_dict(
     return sensor_dict
 
 
+def convert_cap_to_moisture(
+    reading: float, dry_val: int = sensor_dry, wet_val: int = sensor_wet
+):
+    return interp1d([dry_val, wet_val], [0, 100], fill_value="extrapolate")(reading)
+
+
 def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
     """Initialisation of streamlit app"""
     sensor_dict = {}
@@ -125,6 +137,7 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
     for sensor in available_sensors:
         # Streamlit expects columns for each sensor
         plot_df = load_latest_data(data_path / f"{sensor}_log.csv")
+        plot_df[sensor] = convert_cap_to_moisture(plot_df[sensor], 2000, 1400)
         sensor_dict = create_sensor_dict(plot_df, sensor, sensor_dict, today)
 
     st.markdown("## All Sensors")
@@ -188,9 +201,6 @@ def poll_sensors(sensor_dict: dict, available_sensors: dict) -> dict:
             print(f"{sensor} not configured with polling logic")
             continue
 
-        convert_cap_to_moisture = interp1d(
-            [2000, 1400], [0, 100], fill_value="extrapolate"
-        )
         sensor_val = convert_cap_to_moisture(last_reading[sensor].values[0]).flatten()[
             0
         ]
