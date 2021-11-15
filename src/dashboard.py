@@ -251,7 +251,7 @@ def monitor_plants(curr_time: datetime):
         updated_readings, new_vals, sensor_time = poll_sensors(
             sensor_dict, available_sensors
         )
-        time.sleep(5)
+        time.sleep(300)
         hero_string = create_hero_string(available_sensors, new_vals)
         hero.markdown(
             f"<h1 style='text-align: center; color: White;'>{hero_string}</h1><h4 style='text-align: center; color: White;'>{str(sensor_time)[-9:]}</h4>",
