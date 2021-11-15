@@ -204,13 +204,13 @@ def poll_sensors(sensor_dict: dict, available_sensors: dict) -> dict:
         sensor_val = convert_cap_to_moisture(last_reading[sensor].values[0]).flatten()[
             0
         ]
-        time_now = datetime.strptime(
+        sensor_time = datetime.strptime(
             last_reading["timestamp"].values[0], "%Y-%m-%d %H:%M:%S"
         )
 
         new_vals.append(sensor_val)
         # Add new readings to visualisations
-        added_rows = update_data(sensor, sensor_val, time_now, sensor_dict)
+        added_rows = update_data(sensor, sensor_val, sensor_time, sensor_dict)
         # Add new readings to dataframe
         sensor_dict[sensor][2] = sensor_dict[sensor][2].append(
             added_rows, ignore_index=True
@@ -227,10 +227,10 @@ def poll_sensors(sensor_dict: dict, available_sensors: dict) -> dict:
     # Plot all sensors on a plotly graph
     sensor_dict["all"].plotly_chart(fig)
 
-    return sensor_dict, new_vals
+    return sensor_dict, new_vals, sensor_time
 
 
-def create_hero_string(available_sensors, new_vals):
+def create_hero_string(available_sensors: list, new_vals: list) -> str:
     str_ar = []
     sensor_list = list(available_sensors)
     for idx in range(0, len(sensor_list)):
@@ -248,11 +248,13 @@ def monitor_plants(curr_time: datetime):
     # Recieve new data
     while True:
         # time_now = datetime.now()
-        updated_readings, new_vals = poll_sensors(sensor_dict, available_sensors)
+        updated_readings, new_vals, sensor_time = poll_sensors(
+            sensor_dict, available_sensors
+        )
         time.sleep(5)
         hero_string = create_hero_string(available_sensors, new_vals)
         hero.markdown(
-            f"<h1 style='text-align: center; color: White;'>{hero_string}</h1>",
+            f"<h1 style='text-align: center; color: White;'>{hero_string}</h1><h4 style='text-align: center; color: White;'>{str(sensor_time)[-9:]}</h4>",
             unsafe_allow_html=True,
         )
 
