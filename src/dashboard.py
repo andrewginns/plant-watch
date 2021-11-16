@@ -119,14 +119,14 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
     )
 
     # Centre the image
-    left, right = st.columns(2)
+    left, right = st.columns([1, 3])
     with left:
         st.image(Image.open(image_path / "snake.png"), use_column_width=True)
     with right:
         # Create a placeholder for sensor readouts
         hero = st.empty()
         hero.markdown(
-            "<h2 style='text-align: center; color: white;'>Sensors</h2>",
+            "<h2 style='text-align: left; color: white;'>Sensors</h2>",
             unsafe_allow_html=True,
         )
 
@@ -251,10 +251,10 @@ def monitor_plants(curr_time: datetime):
         updated_readings, new_vals, sensor_time = poll_sensors(
             sensor_dict, available_sensors
         )
-        time.sleep(3)
+        time.sleep(300)
         hero_string = create_hero_string(available_sensors, new_vals)
         hero.markdown(
-            f"<h1 style='text-align: center; color: White;'>{hero_string}<p>{str(sensor_time)[-9:]}</p></h1>",
+            f"<h2 style='text-align: left; color: White;'>{hero_string}<p>{str(sensor_time)[-9:]}</p></h2>",
             unsafe_allow_html=True,
         )
 
