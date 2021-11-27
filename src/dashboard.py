@@ -117,10 +117,13 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
         "<h1 style='text-align: center; color: white;'>Plant Monitoring</h1>",
         unsafe_allow_html=True,
     )
+    # Add spacer
+    for _ in range(0, 2):
+        st.markdown("#")
 
     # Centre the image
-    left, right = st.columns([1, 3])
-    with left:
+    left, mid, right = st.columns([1, 1, 2])
+    with mid:
         st.image(Image.open(image_path / "snake.png"), use_column_width=True)
     with right:
         # Create a placeholder for sensor readouts
@@ -131,7 +134,7 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
         )
 
     # Add spacer
-    for _ in range(0, 10):
+    for _ in range(0, 2):
         st.markdown("#")
 
     for sensor in available_sensors:
@@ -197,6 +200,8 @@ def poll_sensors(sensor_dict: dict, available_sensors: dict) -> dict:
             last_reading = load_latest_reading(sensor)
         elif sensor == "temperature":
             last_reading = load_latest_reading(sensor)
+        elif sensor == "humidity":
+            last_reading = load_latest_reading(sensor)
         else:
             print(f"{sensor} not configured with polling logic")
             continue
@@ -230,12 +235,23 @@ def poll_sensors(sensor_dict: dict, available_sensors: dict) -> dict:
     return sensor_dict, new_vals, sensor_time
 
 
-def create_hero_string(available_sensors: list, new_vals: list) -> str:
+def create_hero_string(
+    available_sensors: list, new_vals: list, sensor_time: datetime
+) -> str:
     str_ar = []
     sensor_list = list(available_sensors)
     for idx in range(0, len(sensor_list)):
-        str_ar.append(f"{sensor_list[idx].capitalize()}:<br>{new_vals[idx]:.2f}")
-    return "\n".join(str_ar)
+        str_ar.append(
+            "".join(
+                [
+                    f"<h6>{sensor_list[idx].capitalize()}:</h6>",
+                    f"{new_vals[idx]:.2f}",
+                    "<h6></h6>",
+                ]
+            )
+        )
+    str_ar.append(f"<p>{str(sensor_time)[-9:]}</p>")
+    return "".join(str_ar)
 
 
 def monitor_plants(curr_time: datetime):
@@ -252,9 +268,9 @@ def monitor_plants(curr_time: datetime):
             sensor_dict, available_sensors
         )
         time.sleep(300)
-        hero_string = create_hero_string(available_sensors, new_vals)
+        hero_string = create_hero_string(available_sensors, new_vals, sensor_time)
         hero.markdown(
-            f"<h2 style='text-align: left; color: White;'>{hero_string}<p>{str(sensor_time)[-9:]}</p></h2>",
+            f"<h2 style='text-align: left; color: White;'>{hero_string}</h2>",
             unsafe_allow_html=True,
         )
 
