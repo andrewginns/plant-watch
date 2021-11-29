@@ -44,7 +44,8 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
     for sensor in available_sensors:
         # Streamlit expects columns for each sensor
         plot_df = load_latest_data(data_path / f"{sensor}_log.csv")
-        plot_df[sensor] = convert_cap_to_moisture(plot_df[sensor], 2000, 1400)
+        if sensor == "moisture":
+            plot_df[sensor] = convert_cap_to_moisture(plot_df[sensor], 2000, 1400)
         sensor_dict = create_sensor_dict(plot_df, sensor, sensor_dict, today)
 
     st.markdown("## All Sensors")

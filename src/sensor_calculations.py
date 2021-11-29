@@ -86,17 +86,19 @@ def poll_sensors(sensor_dict: dict, available_sensors: dict) -> dict:
 
         if sensor == "moisture":
             last_reading = load_latest_reading(sensor)
+            sensor_val = convert_cap_to_moisture(
+                last_reading[sensor].values[0]
+            ).flatten()[0]
         elif sensor == "temperature":
             last_reading = load_latest_reading(sensor)
+            sensor_val = last_reading[sensor].values[0]
         elif sensor == "humidity":
             last_reading = load_latest_reading(sensor)
+            sensor_val = last_reading[sensor].values[0]
         else:
             print(f"{sensor} not configured with polling logic")
             continue
 
-        sensor_val = convert_cap_to_moisture(last_reading[sensor].values[0]).flatten()[
-            0
-        ]
         sensor_time = datetime.strptime(
             last_reading["timestamp"].values[0], "%Y-%m-%d %H:%M:%S"
         )
