@@ -29,6 +29,10 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
     left, mid, right = st.columns([1, 1, 2])
     with mid:
         st.image(Image.open(image_path / "snake.png"), use_column_width=True)
+        st.markdown(
+            "<h3 style='text-align: center; color: white;'>Malfoy</h3>",
+            unsafe_allow_html=True,
+        )
     with right:
         # Create a placeholder for sensor readouts
         hero = st.empty()
