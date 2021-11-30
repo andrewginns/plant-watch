@@ -46,7 +46,7 @@ def add_scatter(
 
 def load_latest_data(file_path: Path) -> pd.DataFrame:
     # Load data from the file used to store historical readings
-    df = pd.read_csv(file_path)
+    df = pd.read_csv(file_path).drop_duplicates().reset_index(drop=True)
 
     # Explicitly casting data column to float breaks chart updating
     # df[df.columns[0]] = df[df.columns[0]].astype(float)
