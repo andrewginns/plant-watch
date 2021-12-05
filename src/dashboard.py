@@ -38,12 +38,12 @@ def monitor_plants(curr_time: datetime):
         updated_readings, new_vals, sensor_time = poll_sensors(
             sensor_dict, available_sensors
         )
-        time.sleep(dashboard_update)
         hero_string = create_hero_string(available_sensors, new_vals, sensor_time)
         hero.markdown(
             f"<h2 style='text-align: left; color: White;'>{hero_string}</h2>",
             unsafe_allow_html=True,
         )
+        time.sleep(dashboard_update)
 
 
 # print((time_now - curr_time) < timedelta(days=1))
