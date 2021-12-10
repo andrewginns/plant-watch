@@ -5,7 +5,12 @@ import pandas as pd
 import plotly.express as px
 from scipy.interpolate.interpolate import interp1d
 
-from config.config import data_path, sensor_dry, sensor_wet, configured_sensors
+from config.config import (
+    data_path,
+    sensor_dry,
+    sensor_wet,
+    configured_sensors,
+)
 
 
 def update_data(
@@ -66,8 +71,7 @@ def calc_metrics(sensor_df: pd.DataFrame) -> str:
     last_50 = sensor_df.iloc[-50:].mean(numeric_only=True).values[0]
     all = sensor_df.mean(numeric_only=True).values[0]
     output_df = pd.DataFrame.from_dict(
-        {"Last 10 avg.": [last_10], "Last 50 avg.": [
-            last_50], "Alltime avg.": [all]}
+        {"Last 10 avg.": [last_10], "Last 50 avg.": [last_50], "Alltime avg.": [all]}
     )
     return output_df.to_string(index=False)
 
@@ -135,5 +139,24 @@ def calc_chart_limits(current_day: datetime) -> list:
     )
 
 
-def determine_last_watered(last_date: datetime):
+def determine_last_watered(last_watered: datetime) -> datetime:
     moisture_df = load_latest_data(data_path / f"moisture_log.csv")
+    moisture_df["moisture"] = convert_cap_to_moisture(
+        moisture_df["moisture"], sensor_dry, sensor_wet
+    )
+    # Only check rows after the last event
+    if last_watered is not None:
+        cycle_df = moisture_df[moisture_df["timestamp"] > last_watered].copy(deep=True)
+    else:
+        cycle_df = moisture_df.copy(deep=True)
+    # Calculate difference
+    cycle_df["diff"] = cycle_df["moisture"] - cycle_df.shift(1)["moisture"]
+    # Return last event if it has occured
+    watered_df = cycle_df[-cycle_df["diff"] > 10]["timestamp"]
+    if len(watered_df) == 0:
+        return last_watered
+    return watered_df.iloc[-1].strftime("%Y-%m-%d")
+
+
+def determine_next_water() -> datetime:
+    return "Not implemented"

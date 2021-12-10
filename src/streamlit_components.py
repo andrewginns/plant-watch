@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 from PIL import Image
 
-from config.config import data_path, image_path
+from config.config import data_path, image_path, sensor_dry, sensor_wet
 from sensor_calculations import (
     calc_metrics,
     convert_cap_to_moisture,
@@ -35,14 +35,14 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
         st.image(Image.open(image_path / "snake.png"), use_column_width=True)
         st.markdown(
             "<h3 style='text-align: center; color: white;'>Malfoy</h3>",
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
     with right:
         # Create a placeholder for sensor readouts
         hero = st.empty()
         hero.markdown(
             "<h2 style='text-align: left; color: white;'>Sensors</h2>",
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
 
     _, info_mid, _ = st.columns([1, 2, 1])
@@ -56,7 +56,8 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
         plot_df = load_latest_data(data_path / f"{sensor}_log.csv")
         if sensor == "moisture":
             plot_df[sensor] = convert_cap_to_moisture(
-                plot_df[sensor], 2000, 1400)
+                plot_df[sensor], sensor_dry, sensor_wet
+            )
         sensor_dict = create_sensor_dict(plot_df, sensor, sensor_dict, today)
 
     st.markdown("## All Sensors")

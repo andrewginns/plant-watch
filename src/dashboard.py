@@ -1,8 +1,12 @@
 import time
 from datetime import datetime
 
-from config.config import configured_sensors, dashboard_update
-from sensor_calculations import poll_sensors
+from config.config import configured_sensors, dashboard_update, prediction_update
+from sensor_calculations import (
+    determine_last_watered,
+    determine_next_water,
+    poll_sensors,
+)
 from streamlit_components import streamlit_init_layout
 
 
@@ -25,10 +29,10 @@ def create_hero_string(
     return "".join(str_ar)
 
 
-def create_info_string():
-    s1 = "<h6 style='margin-left: 2.75em'>Last watered: xxxx-xx-xx</h6>"
-    s2 = "<h6 style='margin-left: 2.75em'>Next watering: xxxx-xx-xx</h6>"
-    return ''.join([s1, s2])
+def create_info_string(last_watered: datetime, next_water: datetime):
+    s1 = f"<h6 style='margin-left: 2.75em'>Last watered: {last_watered}</h6>"
+    s2 = f"<h6 style='margin-left: 2.75em'>Water next: {next_water}</h6>"
+    return "".join([s1, s2])
 
 
 def monitor_plants(curr_time: datetime):
@@ -36,24 +40,29 @@ def monitor_plants(curr_time: datetime):
     # Define the sensors and current time
     available_sensors = configured_sensors.keys()
     # Initialise from saved data
-    sensor_dict, hero, info = streamlit_init_layout(
-        available_sensors, curr_time)
+    sensor_dict, hero, info = streamlit_init_layout(available_sensors, curr_time)
+    # Initialise variables
+    last_watered = None
 
     # Recieve new data
     while True:
-        # time_now = datetime.now()
-        updated_sensor_dict, new_vals, sensor_time = poll_sensors(
-            sensor_dict, available_sensors
-        )
-        hero_string = create_hero_string(
-            available_sensors, new_vals, sensor_time)
-        hero.markdown(
-            f"<h2 style='text-align: left; color: White;'>{hero_string}</h2>",
-            unsafe_allow_html=True,
-        )
-        info_string = create_info_string()
+        for i in range(0, prediction_update):
+            # time_now = datetime.now()
+            updated_sensor_dict, new_vals, sensor_time = poll_sensors(
+                sensor_dict, available_sensors
+            )
+            hero_string = create_hero_string(available_sensors, new_vals, sensor_time)
+            hero.markdown(
+                f"<h2 style='text-align: left; color: White;'>{hero_string}</h2>",
+                unsafe_allow_html=True,
+            )
+
+            time.sleep(dashboard_update)
+        last_watered = determine_last_watered(last_watered)
+        next_water = determine_next_water()
+
+        info_string = create_info_string(last_watered, next_water)
         info.markdown(info_string, unsafe_allow_html=True)
-        time.sleep(dashboard_update)
 
 
 # print((time_now - curr_time) < timedelta(days=1))
