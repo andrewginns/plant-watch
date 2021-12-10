@@ -25,24 +25,34 @@ def create_hero_string(
     return "".join(str_ar)
 
 
+def create_info_string():
+    s1 = "<h6 style='margin-left: 2.75em'>Last watered: xxxx-xx-xx</h6>"
+    s2 = "<h6 style='margin-left: 2.75em'>Next watering: xxxx-xx-xx</h6>"
+    return ''.join([s1, s2])
+
+
 def monitor_plants(curr_time: datetime):
     print(f"\nCurrent Time is {curr_time}")
     # Define the sensors and current time
     available_sensors = configured_sensors.keys()
     # Initialise from saved data
-    sensor_dict, hero = streamlit_init_layout(available_sensors, curr_time)
+    sensor_dict, hero, info = streamlit_init_layout(
+        available_sensors, curr_time)
 
     # Recieve new data
     while True:
         # time_now = datetime.now()
-        updated_readings, new_vals, sensor_time = poll_sensors(
+        updated_sensor_dict, new_vals, sensor_time = poll_sensors(
             sensor_dict, available_sensors
         )
-        hero_string = create_hero_string(available_sensors, new_vals, sensor_time)
+        hero_string = create_hero_string(
+            available_sensors, new_vals, sensor_time)
         hero.markdown(
             f"<h2 style='text-align: left; color: White;'>{hero_string}</h2>",
             unsafe_allow_html=True,
         )
+        info_string = create_info_string()
+        info.markdown(info_string, unsafe_allow_html=True)
         time.sleep(dashboard_update)
 
 

@@ -2,16 +2,18 @@ import os
 from pathlib import Path
 
 ROOT_DIR = Path(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    os.path.dirname(os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))))
 )
 
-configured_sensors = {"moisture": "cyan", "temperature": "red", "humidity": "yellow"}
+configured_sensors = {"moisture": "cyan",
+                      "temperature": "red", "humidity": "yellow"}
 
 data_path = ROOT_DIR / "data"
 image_path = ROOT_DIR / "images"
 
 # Dashboard update frequency in seconds
-dashboard_update = 300
+dashboard_update = 10
 
 ######################################################################################################
 # Sensor Config

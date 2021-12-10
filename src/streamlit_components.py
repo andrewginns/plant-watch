@@ -14,6 +14,11 @@ from sensor_calculations import (
 )
 
 
+def add_spacer(spacer_height):
+    for _ in range(0, spacer_height):
+        st.markdown("#")
+
+
 def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
     """Initialisation of streamlit app"""
     sensor_dict = {}
@@ -21,9 +26,8 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
         "<h1 style='text-align: center; color: white;'>Plant Monitoring</h1>",
         unsafe_allow_html=True,
     )
-    # Add spacer
-    for _ in range(0, 2):
-        st.markdown("#")
+    # Add spacer ###############################################################
+    add_spacer(2)
 
     # Centre the image
     left, mid, right = st.columns([1, 1, 2])
@@ -31,30 +35,33 @@ def streamlit_init_layout(available_sensors: list, today: date) -> pd.DataFrame:
         st.image(Image.open(image_path / "snake.png"), use_column_width=True)
         st.markdown(
             "<h3 style='text-align: center; color: white;'>Malfoy</h3>",
-            unsafe_allow_html=True,
+            unsafe_allow_html=True
         )
     with right:
         # Create a placeholder for sensor readouts
         hero = st.empty()
         hero.markdown(
             "<h2 style='text-align: left; color: white;'>Sensors</h2>",
-            unsafe_allow_html=True,
+            unsafe_allow_html=True
         )
 
-    # Add spacer
-    for _ in range(0, 2):
-        st.markdown("#")
+    _, info_mid, _ = st.columns([1, 2, 1])
+    with info_mid:
+        info = st.empty()
+    # Add spacer ###############################################################
+    add_spacer(1)
 
     for sensor in available_sensors:
         # Streamlit expects columns for each sensor
         plot_df = load_latest_data(data_path / f"{sensor}_log.csv")
         if sensor == "moisture":
-            plot_df[sensor] = convert_cap_to_moisture(plot_df[sensor], 2000, 1400)
+            plot_df[sensor] = convert_cap_to_moisture(
+                plot_df[sensor], 2000, 1400)
         sensor_dict = create_sensor_dict(plot_df, sensor, sensor_dict, today)
 
     st.markdown("## All Sensors")
     sensor_dict["all"] = st.empty()
-    return sensor_dict, hero
+    return sensor_dict, hero, info
 
 
 def create_sensor_dict(

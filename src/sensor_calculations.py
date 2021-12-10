@@ -66,7 +66,8 @@ def calc_metrics(sensor_df: pd.DataFrame) -> str:
     last_50 = sensor_df.iloc[-50:].mean(numeric_only=True).values[0]
     all = sensor_df.mean(numeric_only=True).values[0]
     output_df = pd.DataFrame.from_dict(
-        {"Last 10 avg.": [last_10], "Last 50 avg.": [last_50], "Alltime avg.": [all]}
+        {"Last 10 avg.": [last_10], "Last 50 avg.": [
+            last_50], "Alltime avg.": [all]}
     )
     return output_df.to_string(index=False)
 
@@ -133,3 +134,6 @@ def calc_chart_limits(current_day: datetime) -> list:
         / 10 ** 6
     )
 
+
+def determine_last_watered(last_date: datetime):
+    moisture_df = load_latest_data(data_path / f"moisture_log.csv")
