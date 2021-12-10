@@ -4,13 +4,9 @@ from pathlib import Path
 import pandas as pd
 import plotly.express as px
 from scipy.interpolate.interpolate import interp1d
+from statsmodels.tsa.ar_model import AutoReg
 
-from config.config import (
-    data_path,
-    sensor_dry,
-    sensor_wet,
-    configured_sensors,
-)
+from config.config import configured_sensors, data_path, sensor_dry, sensor_wet
 
 
 def update_data(
@@ -139,7 +135,7 @@ def calc_chart_limits(current_day: datetime) -> list:
     )
 
 
-def determine_last_watered(last_watered: datetime) -> datetime:
+def calc_cycle(last_watered: datetime) -> pd.DataFrame:
     moisture_df = load_latest_data(data_path / f"moisture_log.csv")
     moisture_df["moisture"] = convert_cap_to_moisture(
         moisture_df["moisture"], sensor_dry, sensor_wet
@@ -149,14 +145,33 @@ def determine_last_watered(last_watered: datetime) -> datetime:
         cycle_df = moisture_df[moisture_df["timestamp"] > last_watered].copy(deep=True)
     else:
         cycle_df = moisture_df.copy(deep=True)
+    return cycle_df
+
+
+def determine_last_watered(last_watered: datetime) -> datetime:
+    cycle_df = calc_cycle(last_watered)
     # Calculate difference
     cycle_df["diff"] = cycle_df["moisture"] - cycle_df.shift(1)["moisture"]
     # Return last event if it has occured
-    watered_df = cycle_df[-cycle_df["diff"] > 10]["timestamp"]
+    watered_df = cycle_df[cycle_df["diff"] > 10]["timestamp"]
     if len(watered_df) == 0:
         return last_watered
     return watered_df.iloc[-1].strftime("%Y-%m-%d")
 
 
-def determine_next_water() -> datetime:
+def determine_next_water(last_watered: datetime) -> datetime:
+    cycle_df = calc_cycle(last_watered)
+    cycle_df["diff"] = cycle_df["moisture"] - cycle_df.shift(1)["moisture"]
+
+    X = cycle_df["moisture"].values
+    # Possibly implement different windows of training based on watering cycles
+    try:
+        model = AutoReg(X, lags=249)
+    except ValueError as e:
+        return "Insufficient time since watering"
+
+    model_fit = model.fit()
+    # Predict 1 week in advanced and return result
+
+    cycle_df.iloc[-2000:]
     return "Not implemented"

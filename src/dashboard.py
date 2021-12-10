@@ -59,7 +59,7 @@ def monitor_plants(curr_time: datetime):
 
             time.sleep(dashboard_update)
         last_watered = determine_last_watered(last_watered)
-        next_water = determine_next_water()
+        next_water = determine_next_water(last_watered)
 
         info_string = create_info_string(last_watered, next_water)
         info.markdown(info_string, unsafe_allow_html=True)
