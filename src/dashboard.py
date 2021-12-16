@@ -30,8 +30,8 @@ def create_hero_string(
 
 
 def create_info_string(last_watered: datetime, next_water: datetime):
-    s1 = f"<h6 style='margin-left: 2.75em'>Last watered: {last_watered}</h6>"
-    s2 = f"<h6 style='margin-left: 2.75em'>Water next: {next_water}</h6>"
+    s1 = f"<h6 style='margin-left: 1em'>Last watered: {last_watered}</h6>"
+    s2 = f"<h6 style='margin-left: 1em'>Water next: {next_water}</h6>"
     return "".join([s1, s2])
 
 
@@ -53,7 +53,7 @@ def monitor_plants(curr_time: datetime):
         info_string = create_info_string(last_watered, next_water)
         info.markdown(info_string, unsafe_allow_html=True)
 
-        # Update sensors
+        # Update senso
         for _ in range(0, prediction_update):
             # time_now = datetime.now()
             updated_sensor_dict, new_vals, sensor_time = poll_sensors(
