@@ -11,10 +11,10 @@ data_path = ROOT_DIR / "data"
 image_path = ROOT_DIR / "images"
 
 # Dashboard update frequency in seconds
-dashboard_update = 10
+dashboard_update = 300
 
 # Prediction update frequency in loops (e.g. 5 mins per loop, 250 loops ~= 1 day)
-prediction_update = 2
+prediction_update = 250
 
 ######################################################################################################
 # Sensor Config
@@ -27,4 +27,4 @@ sensor_wet = 1400
 ######################################################################################################
 # Thresholds
 water_threshold_pct = 10
-target_water_moisture = 70
+target_water_moisture = 71

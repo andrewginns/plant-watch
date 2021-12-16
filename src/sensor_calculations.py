@@ -1,12 +1,20 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
+from typing import Tuple
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
 from scipy.interpolate.interpolate import interp1d
 from statsmodels.tsa.ar_model import AutoReg
 
-from config.config import configured_sensors, data_path, sensor_dry, sensor_wet
+from config.config import (
+    configured_sensors,
+    data_path,
+    sensor_dry,
+    sensor_wet,
+    target_water_moisture,
+)
 
 
 def update_data(
@@ -135,7 +143,7 @@ def calc_chart_limits(current_day: datetime) -> list:
     )
 
 
-def calc_cycle(last_watered: datetime) -> pd.DataFrame:
+def calc_cycle(last_watered: datetime) -> Tuple[pd.DataFrame, datetime]:
     moisture_df = load_latest_data(data_path / f"moisture_log.csv")
     moisture_df["moisture"] = convert_cap_to_moisture(
         moisture_df["moisture"], sensor_dry, sensor_wet
@@ -143,13 +151,24 @@ def calc_cycle(last_watered: datetime) -> pd.DataFrame:
     # Only check rows after the last event
     if last_watered is not None:
         cycle_df = moisture_df[moisture_df["timestamp"] > last_watered].copy(deep=True)
+        return cycle_df, last_watered
     else:
-        cycle_df = moisture_df.copy(deep=True)
-    return cycle_df
+        # Last watering event is unknown we need to check the historical record to filter
+        calc_df = moisture_df.copy(deep=True)
+        calc_df["diff"] = calc_df["moisture"] - calc_df.shift(1)["moisture"]
+        # Return last event if it has occured
+        watered_df = calc_df[calc_df["diff"] > 10]
+        # If no watering events return the full historical data
+        if len(watered_df) == 0:
+            return moisture_df, None
+        # Return the dateframe after the last identified watering
+        watered_date = watered_df["timestamp"].iloc[-1]
+        cycle_df = calc_df[calc_df["timestamp"] > watered_date].copy(deep=True)
+        return cycle_df, watered_date
 
 
 def determine_last_watered(last_watered: datetime) -> datetime:
-    cycle_df = calc_cycle(last_watered)
+    cycle_df, last_watered = calc_cycle(last_watered)
     # Calculate difference
     cycle_df["diff"] = cycle_df["moisture"] - cycle_df.shift(1)["moisture"]
     # Return last event if it has occured
@@ -159,19 +178,28 @@ def determine_last_watered(last_watered: datetime) -> datetime:
     return watered_df.iloc[-1].strftime("%Y-%m-%d")
 
 
-def determine_next_water(last_watered: datetime) -> datetime:
-    cycle_df = calc_cycle(last_watered)
+def determine_next_water(last_watered: datetime) -> Tuple[datetime, datetime]:
+    print("\n\nPredicting next watering\n\n")
+    # Filter the df from the last point it was watered
+    cycle_df, last_watered = calc_cycle(last_watered)
     cycle_df["diff"] = cycle_df["moisture"] - cycle_df.shift(1)["moisture"]
-
     X = cycle_df["moisture"].values
+    if X[0] < target_water_moisture:
+        return "Water now!", last_watered
     # Possibly implement different windows of training based on watering cycles
     try:
-        model = AutoReg(X, lags=249)
+        # Lag with 2 days of data
+        model = AutoReg(X, lags=500, old_names=False)
+        model_fit = model.fit()
+        # Predict 1 week in advanced and return index of values below threshold
+        water_idx = np.argmax(model_fit.forecast(steps=2000) < target_water_moisture)
+        if water_idx == 0:
+            return "Not in the next week", last_watered
+        else:
+            # TODO: Estimate average time between readings for the last day and use that as the multiplier
+            return (
+                f"Water on {(datetime.now() + timedelta(minutes=5*int(water_idx))).strftime('%Y-%m-%d')}",
+                last_watered,
+            )
     except ValueError as e:
-        return "Insufficient time since watering"
-
-    model_fit = model.fit()
-    # Predict 1 week in advanced and return result
-
-    cycle_df.iloc[-2000:]
-    return "Not implemented"
+        return "Insufficient time since watering", last_watered

@@ -46,7 +46,15 @@ def monitor_plants(curr_time: datetime):
 
     # Recieve new data
     while True:
-        for i in range(0, prediction_update):
+        # Run predictions
+        last_watered = determine_last_watered(last_watered)
+        next_water, last_watered = determine_next_water(last_watered)
+
+        info_string = create_info_string(last_watered, next_water)
+        info.markdown(info_string, unsafe_allow_html=True)
+
+        # Update sensors
+        for _ in range(0, prediction_update):
             # time_now = datetime.now()
             updated_sensor_dict, new_vals, sensor_time = poll_sensors(
                 sensor_dict, available_sensors
@@ -58,11 +66,6 @@ def monitor_plants(curr_time: datetime):
             )
 
             time.sleep(dashboard_update)
-        last_watered = determine_last_watered(last_watered)
-        next_water = determine_next_water(last_watered)
-
-        info_string = create_info_string(last_watered, next_water)
-        info.markdown(info_string, unsafe_allow_html=True)
 
 
 # print((time_now - curr_time) < timedelta(days=1))
