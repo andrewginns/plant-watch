@@ -6,7 +6,7 @@ import numpy as np
 
 # from grove.adc import ADC
 
-from config.config import data_path, moisture_pin
+from config import data_path, moisture_pin
 
 
 # class GroveMoistureSensor:
