@@ -1,7 +1,7 @@
 import time
 from datetime import datetime
 
-from config.config import configured_sensors, dashboard_update, prediction_update
+from config import configured_sensors, dashboard_update, prediction_update
 from sensor_calculations import (
     determine_last_watered,
     determine_next_water,
@@ -25,7 +25,7 @@ def create_hero_string(
                 ]
             )
         )
-    str_ar.append(f"<p>{str(sensor_time)[-9:]}</p>")
+    str_ar.append(f"<p>{str(sensor_time).split('T')[-1][:8]}</p>")
     return "".join(str_ar)
 
 
@@ -50,15 +50,17 @@ def monitor_plants(curr_time: datetime):
         last_watered = determine_last_watered(last_watered)
         next_water, last_watered = determine_next_water(last_watered)
 
+        # Add information readouts
         info_string = create_info_string(last_watered, next_water)
         info.markdown(info_string, unsafe_allow_html=True)
 
-        # Update senso
+        # Update sensors
         for _ in range(0, prediction_update):
             # time_now = datetime.now()
             updated_sensor_dict, new_vals, sensor_time = poll_sensors(
                 sensor_dict, available_sensors
             )
+            # Update the 'hero' sensor readouts
             hero_string = create_hero_string(available_sensors, new_vals, sensor_time)
             hero.markdown(
                 f"<h2 style='text-align: left; color: White;'>{hero_string}</h2>",
