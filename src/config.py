@@ -7,7 +7,9 @@ ROOT_DIR = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 configured_sensors = {"moisture": "cyan", "temperature": "red", "humidity": "yellow"}
 
 data_path = ROOT_DIR / "data"
+# data_path = Path("/Volumes/PiShare/data_store") # Example path for a Raspberry pi server share
 image_path = ROOT_DIR / "images"
+
 
 # Dashboard update frequency in seconds
 dashboard_update = 10
