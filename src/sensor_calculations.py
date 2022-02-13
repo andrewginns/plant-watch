@@ -113,7 +113,12 @@ def poll_sensors(sensor_dict: dict, available_sensors: dict) -> dict:
             print(f"{sensor} not configured with polling logic")
             continue
 
-        sensor_time = last_reading["timestamp"].values[0]
+        try:
+            sensor_time = last_reading["timestamp"].values[0]
+        except ValueError as e:
+            print(e)
+            print(last_reading["timestamp"].values[0])
+            sensor_time = sensor_dict[sensor][2].iloc[-1]["timestamp"]
 
         new_vals.append(sensor_val)
         # Add new readings to visualisations
