@@ -189,7 +189,8 @@ def determine_next_water(last_watered: datetime) -> Tuple[datetime, datetime]:
     cycle_df, last_watered = calc_cycle(last_watered)
     cycle_df["diff"] = cycle_df["moisture"] - cycle_df.shift(1)["moisture"]
     X = cycle_df["moisture"].values
-    if X[0] < target_water_moisture:
+    # If the current reading is below the target moisture
+    if X[-1] < target_water_moisture:
         return "Now!", last_watered
     # Possibly implement different windows of training based on watering cycles
     try:
