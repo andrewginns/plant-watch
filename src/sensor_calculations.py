@@ -1,14 +1,15 @@
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Tuple
 
 import numpy as np
 import pandas as pd
 import plotly.express as px
+import streamlit as st
 from scipy.interpolate.interpolate import interp1d
 from statsmodels.tsa.ar_model import AutoReg
 
-from config.config import (
+from config import (
     configured_sensors,
     data_path,
     sensor_dry,
@@ -24,7 +25,9 @@ def update_data(
     add_df = pd.DataFrame.from_dict(
         {
             sensor_str: [sensor_val],
-            "timestamp": current_time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "timestamp": pd.to_datetime(str(current_time)).strftime(
+                "%Y-%m-%dT%H:%M:%S"
+            ),
         }
     )
     print(current_time)
@@ -67,7 +70,9 @@ def load_latest_data(file_path: Path) -> pd.DataFrame:
 
 def load_latest_reading(sensor: str) -> float:
     sensor_file = data_path / f"{sensor}_log.csv"
-    return pd.read_csv(sensor_file).tail(1)
+    last_val = pd.read_csv(sensor_file).tail(1)
+    last_val["timestamp"] = pd.to_datetime(last_val["timestamp"])
+    return last_val
 
 
 def calc_metrics(sensor_df: pd.DataFrame) -> str:
@@ -75,7 +80,7 @@ def calc_metrics(sensor_df: pd.DataFrame) -> str:
     last_50 = sensor_df.iloc[-50:].mean(numeric_only=True).values[0]
     all = sensor_df.mean(numeric_only=True).values[0]
     output_df = pd.DataFrame.from_dict(
-        {"Last 10 avg.": [last_10], "Last 50 avg.": [last_50], "Alltime avg.": [all]}
+        {"Last 10 avg.": [last_10], "Last 50 avg.": [last_50], "Charted avg.": [all]}
     )
     return output_df.to_string(index=False)
 
@@ -108,9 +113,12 @@ def poll_sensors(sensor_dict: dict, available_sensors: dict) -> dict:
             print(f"{sensor} not configured with polling logic")
             continue
 
-        sensor_time = datetime.strptime(
-            last_reading["timestamp"].values[0], "%Y-%m-%d %H:%M:%S"
-        )
+        try:
+            sensor_time = last_reading["timestamp"].values[0]
+        except ValueError as e:
+            print(e)
+            print(last_reading["timestamp"].values[0])
+            sensor_time = sensor_dict[sensor][2].iloc[-1]["timestamp"]
 
         new_vals.append(sensor_val)
         # Add new readings to visualisations
@@ -119,6 +127,8 @@ def poll_sensors(sensor_dict: dict, available_sensors: dict) -> dict:
         sensor_dict[sensor][2] = sensor_dict[sensor][2].append(
             added_rows, ignore_index=True
         )
+        # Limit sensor dict to ~1 week of data
+        sensor_dict[sensor][2] = sensor_dict[sensor][2].iloc[-2500:]
 
         # Plot data to scatter
         fig = add_scatter(sensor_dict, sensor, added_rows, fig)
@@ -162,7 +172,7 @@ def calc_cycle(last_watered: datetime) -> Tuple[pd.DataFrame, datetime]:
         if len(watered_df) == 0:
             return moisture_df, None
         # Return the dateframe after the last identified watering
-        watered_date = watered_df["timestamp"].iloc[-1]
+        watered_date = watered_df["timestamp"].iloc[-1].strftime("%Y-%m-%d")
         cycle_df = calc_df[calc_df["timestamp"] > watered_date].copy(deep=True)
         return cycle_df, watered_date
 
@@ -184,8 +194,9 @@ def determine_next_water(last_watered: datetime) -> Tuple[datetime, datetime]:
     cycle_df, last_watered = calc_cycle(last_watered)
     cycle_df["diff"] = cycle_df["moisture"] - cycle_df.shift(1)["moisture"]
     X = cycle_df["moisture"].values
-    if X[0] < target_water_moisture:
-        return "Water now!", last_watered
+    # If the current reading is below the target moisture
+    if X[-1] < target_water_moisture:
+        return "Now!", last_watered
     # Possibly implement different windows of training based on watering cycles
     try:
         # Lag with 2 days of data
@@ -198,7 +209,7 @@ def determine_next_water(last_watered: datetime) -> Tuple[datetime, datetime]:
         else:
             # TODO: Estimate average time between readings for the last day and use that as the multiplier
             return (
-                f"Water on {(datetime.now() + timedelta(minutes=5*int(water_idx))).strftime('%Y-%m-%d')}",
+                f"On {(datetime.now() + timedelta(minutes=5*int(water_idx))).strftime('%Y-%m-%d')}",
                 last_watered,
             )
     except ValueError as e:
