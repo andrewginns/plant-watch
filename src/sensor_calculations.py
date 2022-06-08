@@ -5,7 +5,6 @@ from typing import Tuple
 import numpy as np
 import pandas as pd
 import plotly.express as px
-import streamlit as st
 from scipy.interpolate.interpolate import interp1d
 from statsmodels.tsa.ar_model import AutoReg
 
@@ -148,13 +147,12 @@ def calc_chart_limits(current_day: datetime) -> list:
     return (
         pd.to_datetime(
             [current_day - timedelta(days=7), current_day + timedelta(days=1)]
-        ).astype(int)
-        / 10 ** 6
+        ).astype(int) / 10 ** 6
     )
 
 
 def calc_cycle(last_watered: datetime) -> Tuple[pd.DataFrame, datetime]:
-    moisture_df = load_latest_data(data_path / f"moisture_log.csv")
+    moisture_df = load_latest_data(data_path / "moisture_log.csv")
     moisture_df["moisture"] = convert_cap_to_moisture(
         moisture_df["moisture"], sensor_dry, sensor_wet
     )
@@ -213,4 +211,5 @@ def determine_next_water(last_watered: datetime) -> Tuple[datetime, datetime]:
                 last_watered,
             )
     except ValueError as e:
+        print(e)
         return "Insufficient time since watering", last_watered
