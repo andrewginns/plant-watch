@@ -17,9 +17,7 @@ from config import (
 )
 
 
-def update_data(
-    sensor_str: str, sensor_val: float, current_time: datetime, sensor_dict: dict
-) -> pd.DataFrame:
+def update_data(sensor_str: str, sensor_val: float, current_time: datetime, sensor_dict: dict) -> pd.DataFrame:
     """Add new data from sensor to the streamlit charts"""
     add_df = pd.DataFrame.from_dict(
         {
@@ -40,9 +38,7 @@ def update_data(
     return add_df
 
 
-def add_scatter(
-    sensor_dict: dict, sensor: str, added_rows: pd.DataFrame, fig: px.line
-) -> px.line:
+def add_scatter(sensor_dict: dict, sensor: str, added_rows: pd.DataFrame, fig: px.line) -> px.line:
     # TODO: Should probably be a call to a classes df object
     latest_df = sensor_dict[sensor][2].append(added_rows, ignore_index=True)
     # Add a scatter to the plotly graph objects
@@ -84,9 +80,7 @@ def calc_metrics(sensor_df: pd.DataFrame) -> str:
     return output_df.to_string(index=False)
 
 
-def convert_cap_to_moisture(
-    reading: float, dry_val: int = sensor_dry, wet_val: int = sensor_wet
-):
+def convert_cap_to_moisture(reading: float, dry_val: int = sensor_dry, wet_val: int = sensor_wet) -> float:
     return interp1d([dry_val, wet_val], [0, 100], fill_value="extrapolate")(reading)
 
 
@@ -186,7 +180,7 @@ def determine_last_watered(last_watered: datetime) -> datetime:
     return watered_df.iloc[-1].strftime("%Y-%m-%d")
 
 
-def determine_next_water(last_watered: datetime) -> Tuple[datetime, datetime]:
+def determine_next_water(last_watered: datetime) -> Tuple[str, datetime]:
     print("\n\nPredicting next watering\n\n")
     # Filter the df from the last point it was watered
     cycle_df, last_watered = calc_cycle(last_watered)

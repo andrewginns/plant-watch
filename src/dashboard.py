@@ -10,9 +10,7 @@ from sensor_calculations import (
 from streamlit_components import streamlit_init_layout
 
 
-def create_hero_string(
-    available_sensors: list, new_vals: list, sensor_time: datetime
-) -> str:
+def create_hero_string(available_sensors: list, new_vals: list, sensor_time: datetime) -> str:
     str_ar = []
     sensor_list = list(available_sensors)
     for idx in range(0, len(sensor_list)):
@@ -29,13 +27,13 @@ def create_hero_string(
     return "".join(str_ar)
 
 
-def create_info_string(last_watered: datetime, next_water: datetime):
+def create_info_string(last_watered: datetime, next_water: datetime) -> str:
     s1 = f"<h6 style='margin-left: 1em'>Last watered: {last_watered}</h6>"
     s2 = f"<h6 style='margin-left: 1em'>Water next: {next_water}</h6>"
     return "".join([s1, s2])
 
 
-def monitor_plants(curr_time: datetime):
+def monitor_plants(curr_time: datetime) -> None:
     print(f"\nCurrent Time is {curr_time}")
     # Define the sensors and current time
     available_sensors = configured_sensors.keys()
@@ -68,54 +66,6 @@ def monitor_plants(curr_time: datetime):
             )
 
             time.sleep(dashboard_update)
-
-
-# print((time_now - curr_time) < timedelta(days=1))
-
-# if (time_now - curr_time) < timedelta(days=1):
-#     # Update the start date
-#     print("Updating chart lims")
-
-#     curr_time = time_now + timedelta(days=1)
-#     # Updated the chart axes
-#     new_lims = calc_chart_limits(curr_time)
-
-#     # for sensor in [key for key in sensor_dict][:-1]:
-#     #     plot_df = load_latest_data(data_path / f"{sensor}.csv")
-#     #     chart = st.empty()
-#     #     chart.altair_chart(
-#     #         alt.Chart(plot_df)
-#     #         .mark_line(point=True)
-#     #         .encode(
-#     #             x=alt.X("timestamp", scale=alt.Scale(domain=list(new_lims))),
-#     #             y=sensor,
-#     #             tooltip=[sensor.__str__(), "timestamp"],
-#     #         )
-#     #         .interactive(),
-#     #         use_container_width=True,
-#     #     )
-
-# # st.altair_chart(alt.Chart(load_latest_data(data_path / f"moisture.csv")))
-
-# # This really should work, not sure why it doesn't
-# for sensor in sensor_dict:
-#     updated_readings[sensor][1].altair_chart(
-#         alt.Chart(load_latest_data(data_path / f"{sensor}.csv"))
-#         .mark_line(point=True)
-#         .encode(
-#             x=alt.X(
-#                 "timestamp",
-#                 scale=alt.Scale(
-#                     # domain=list([1635766338263.342, 1635966338263.342])
-#                     domain=list(new_lims)
-#                 ),
-#             ),
-#             y=sensor,
-#             tooltip=[sensor.__str__(), "timestamp"],
-#         )
-#         .interactive(),
-#         use_container_width=True,
-#     )
 
 
 def main() -> None:

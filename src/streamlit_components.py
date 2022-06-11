@@ -5,7 +5,6 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 from PIL import Image
-from streamlit.delta_generator import DeltaGenerator
 
 from config import data_path, image_path, sensor_dry, sensor_wet
 from sensor_calculations import (
@@ -16,12 +15,12 @@ from sensor_calculations import (
 )
 
 
-def add_spacer(spacer_height):
+def add_spacer(spacer_height: int) -> None:
     for _ in range(0, spacer_height):
         st.markdown("#")
 
 
-def init_hero_components():
+def init_hero_components() -> Tuple[st.empty, st.empty]:
     # Centre the image
     left, mid, right = st.columns([1, 1, 2])
     with mid:
@@ -44,9 +43,7 @@ def init_hero_components():
     return hero, info
 
 
-def streamlit_init_layout(
-    available_sensors: list, today: date
-) -> Tuple[dict, DeltaGenerator, DeltaGenerator]:
+def streamlit_init_layout(available_sensors: list, today: date) -> Tuple[dict, st.empty, st.empty]:
     """Initialisation of streamlit app"""
     sensor_dict = {}
     st.markdown(
@@ -73,7 +70,7 @@ def streamlit_init_layout(
     return sensor_dict, hero, info
 
 
-def plot_combined(plot_df, sensor, domain_pd):
+def plot_combined(plot_df: pd.DataFrame, sensor: str, chart_limits: list) -> st.empty:
     # Plot (Plotly would be preferred but is not supported by the add_rows function)
     with st.expander(f"{sensor.capitalize()} timeseries"):
         chart = st.empty()
@@ -81,7 +78,7 @@ def plot_combined(plot_df, sensor, domain_pd):
             alt.Chart(plot_df)
             .mark_line(point=True)
             .encode(
-                x=alt.X("timestamp", scale=alt.Scale(domain=list(domain_pd))),
+                x=alt.X("timestamp", scale=alt.Scale(domain=list(chart_limits))),
                 y=sensor,
                 tooltip=[sensor.__str__(), "timestamp"],
             )
@@ -92,7 +89,7 @@ def plot_combined(plot_df, sensor, domain_pd):
     return chart
 
 
-def create_sensor_info(plot_df, sensor):
+def create_sensor_info(plot_df: pd.DataFrame, sensor: str) -> Tuple[pd.DataFrame, st.dataframe]:
     st.markdown(f"## {sensor.capitalize()}")
 
     # Calculate metrics from loaded data
@@ -105,17 +102,15 @@ def create_sensor_info(plot_df, sensor):
     return metrics_df, frame
 
 
-def create_sensor_dict(
-    plot_df: pd.DataFrame, sensor: str, sensor_dict: dict, current_day: datetime
-) -> dict:
+def create_sensor_dict(plot_df: pd.DataFrame, sensor: str, sensor_dict: dict, current_day: datetime) -> dict:
     # Stores objects returned by function
     sensor_dict[sensor] = []
 
     metrics_df, frame = create_sensor_info(plot_df, sensor)
 
     # Set the axis limits dynamically to the last month of data - TODO: Needs to be dynamic with sensor refreshes
-    domain_pd = calc_chart_limits(current_day)
-    chart = plot_combined(plot_df, sensor, domain_pd)
+    chart_limits = calc_chart_limits(current_day)
+    chart = plot_combined(plot_df, sensor, chart_limits)
 
     # Assign the ouput streamlit objects to the sensor dict object
     sensor_dict[sensor].append(frame)  # Index 0 - Streamlit df
@@ -124,4 +119,3 @@ def create_sensor_dict(
     sensor_dict[sensor].append(metrics_df)  # Index 3 - Metrics df
 
     return sensor_dict
-

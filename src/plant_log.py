@@ -25,12 +25,12 @@ class GroveMoistureSensor:
         pin(int): number of analog pin/channel the sensor connected.
     """
 
-    def __init__(self, channel):
+    def __init__(self, channel) -> None:
         self.channel = channel
         self.adc = ADC()
 
     @property
-    def moisture(self):
+    def moisture(self) -> float:
         """
         Get the moisture strength value/voltage
         Returns:
@@ -46,21 +46,21 @@ class GroveHumidityTemperatureSensor:
     Args:
         pin(int): number of analog pin/channel the sensor connected.
     """
-    def __init__(self, channel):
+    def __init__(self, channel) -> None:
         self.channel = channel
         self.dht = Adafruit_DHT
         self.sensor = Adafruit_DHT.DHT11
 
-    def temperature(self):
+    def temperature(self) -> float:
         _, temperature = self.dht.read_retry(self.sensor, self.channel)
         return temperature
 
-    def humidity(self):
+    def humidity(self) -> float:
         humidity, _ = self.dht.read_retry(self.sensor, self.channel)
         return humidity
 
 
-def main():
+def main() -> None:
     moisture_sensor = GroveMoistureSensor(moisture_pin)
     temp_hum_sensor = GroveHumidityTemperatureSensor(temp_humid_pin)
 
