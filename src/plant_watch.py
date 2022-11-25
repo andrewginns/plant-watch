@@ -66,7 +66,7 @@ def monitor_plants(curr_time: datetime) -> None:
             print(f"Published {data} to {mqtt_topic_root + 'water_next'} on MQTT")
     
             data = {f"water_last": str(last_watered)}
-            client.publish(mqtt_topic_root + "water_next", json.dumps(data))
+            client.publish(mqtt_topic_root + "water_last", json.dumps(data))
             print(f"Published {data} to {mqtt_topic_root + 'water_last'} on MQTT")
 
         # Add information readouts
