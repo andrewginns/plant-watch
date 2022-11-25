@@ -1,13 +1,18 @@
 import time
 from datetime import datetime
 
-from config import configured_sensors, dashboard_update, prediction_update
+from config import configured_sensors, dashboard_update, prediction_update, homeassistant_integration
 from sensor_calculations import (
     determine_last_watered,
     determine_next_water,
     poll_sensors,
 )
 from streamlit_components import streamlit_init_layout
+
+if homeassistant_integration:
+    import json
+    import paho.mqtt.client as mqtt
+    from config import clientname, hostname, port, timeout, hass_username, hass_password, mqtt_topic_root
 
 
 def create_hero_string(available_sensors: list, new_vals: list, sensor_time: datetime) -> str:
@@ -34,6 +39,13 @@ def create_info_string(last_watered: datetime, next_water: datetime) -> str:
 
 
 def monitor_plants(curr_time: datetime) -> None:
+    if homeassistant_integration:
+        client = mqtt.Client(clientname)
+        client.username_pw_set(hass_username, hass_password)
+        client.connect(hostname, port, timeout)
+
+        client.loop_start()
+
     print(f"\nCurrent Time is {curr_time}")
     # Define the sensors and current time
     available_sensors = configured_sensors.keys()
@@ -47,6 +59,15 @@ def monitor_plants(curr_time: datetime) -> None:
         # Run predictions
         last_watered = determine_last_watered(last_watered)
         next_water, last_watered = determine_next_water(last_watered)
+
+        if homeassistant_integration:
+            data = {f"water_next": str(next_water)}
+            client.publish(mqtt_topic_root + "water_next", json.dumps(data))
+            print(f"Published {data} to {mqtt_topic_root + 'water_next'} on MQTT")
+    
+            data = {f"water_last": str(last_watered)}
+            client.publish(mqtt_topic_root + "water_next", json.dumps(data))
+            print(f"Published {data} to {mqtt_topic_root + 'water_last'} on MQTT")
 
         # Add information readouts
         info_string = create_info_string(last_watered, next_water)
