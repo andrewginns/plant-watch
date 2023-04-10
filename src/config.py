@@ -18,7 +18,7 @@ dashboard_update = 10
 prediction_update = 25
 
 # Optional homeassistant integration
-homeassistant_integration = True
+homeassistant_integration = False
 clientname = "Malfoy"
 hostname = ''
 port = 1883
