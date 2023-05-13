@@ -56,7 +56,7 @@ def add_scatter(sensor_dict: dict, sensor: str, added_rows: pd.DataFrame, fig: p
         px.line: The updated plotly graph object.
     """
     # TODO: Should probably be a call to a classes df object
-    latest_df = sensor_dict[sensor][2].append(added_rows, ignore_index=True)
+    latest_df = pd.concat([sensor_dict[sensor][2], added_rows], ignore_index=True)
     # Add a scatter to the plotly graph objects
     fig.add_scatter(
         x=latest_df["timestamp"],
@@ -181,9 +181,8 @@ def poll_sensors(sensor_dict: dict, available_sensors: dict) -> dict:
         # Add new readings to visualisations
         added_rows = update_data(sensor, sensor_val, sensor_time, sensor_dict)
         # Add new readings to dataframe
-        sensor_dict[sensor][2] = sensor_dict[sensor][2].append(
-            added_rows, ignore_index=True
-        )
+        # sensor_dict[sensor][2] = sensor_dict[sensor][2].append(added_rows, ignore_index=True)
+        sensor_dict[sensor][2] = pd.concat([sensor_dict[sensor][2], added_rows], ignore_index=True)
         # Limit sensor dict to ~1 week of data
         sensor_dict[sensor][2] = sensor_dict[sensor][2].iloc[-2500:]
 
