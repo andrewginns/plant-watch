@@ -22,7 +22,7 @@ def update_data(sensor_str: str, sensor_val: float, current_time: datetime, sens
     add_df = pd.DataFrame.from_dict(
         {
             sensor_str: [sensor_val],
-            "timestamp": pd.to_datetime(str(current_time)).strftime(
+            "timestamp": pd.to_datetime(current_time).strftime(
                 "%Y-%m-%dT%H:%M:%S"
             ),
         }
@@ -93,9 +93,7 @@ def poll_sensors(sensor_dict: dict, available_sensors: dict) -> dict:
 
         if sensor == "moisture":
             last_reading = load_latest_reading(sensor)
-            sensor_val = convert_cap_to_moisture(
-                last_reading[sensor].values[0]
-            ).flatten()[0]
+            sensor_val = convert_cap_to_moisture(last_reading[sensor].values[0]).flatten()[0]
         elif sensor == "temperature":
             last_reading = load_latest_reading(sensor)
             sensor_val = last_reading[sensor].values[0]
