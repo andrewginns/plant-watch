@@ -1,21 +1,33 @@
 import time
 from datetime import datetime
 
-from config import configured_sensors, dashboard_update, prediction_update, homeassistant_integration
-from sensor_calculations import (
-    determine_last_watered,
-    determine_next_water,
-    poll_sensors,
-)
+from config import (configured_sensors, dashboard_update,
+                    homeassistant_integration, prediction_update)
+from sensor_calculations import (determine_last_watered, determine_next_water,
+                                 poll_sensors)
 from streamlit_components import streamlit_init_layout
 
 if homeassistant_integration:
     import json
+
     import paho.mqtt.client as mqtt
-    from config import clientname, hostname, port, timeout, hass_username, hass_password, mqtt_topic_root
+
+    from config import (clientname, hass_password, hass_username, hostname,
+                        mqtt_topic_root, port, timeout)
 
 
 def create_hero_string(available_sensors: list, new_vals: list, sensor_time: datetime) -> str:
+    """
+    This function creates a string that can be used to display the sensor readings in the hero section of the dashboard.
+
+    Args:
+        available_sensors: A list of the names of the available sensors.
+        new_vals: A list of the new sensor readings.
+        sensor_time: The current time.
+
+    Returns:
+        A string that can be used to display the sensor readings in the hero section of the dashboard.
+    """
     str_ar = []
     sensor_list = list(available_sensors)
     for idx in range(0, len(sensor_list)):
@@ -33,12 +45,28 @@ def create_hero_string(available_sensors: list, new_vals: list, sensor_time: dat
 
 
 def create_info_string(last_watered: datetime, next_water: datetime) -> str:
+    """
+    This function creates a string that can be used to display the last watered and next water dates in the info section of the dashboard.
+
+    Args:
+        last_watered: The last time the plants were watered.
+        next_water: The next time the plants should be watered.
+
+    Returns:
+        A string that can be used to display the last watered and next water dates in the info section of the dashboard.
+    """
     s1 = f"<h6 style='margin-left: 1em'>Last watered: {last_watered}</h6>"
     s2 = f"<h6 style='margin-left: 1em'>Water next: {next_water}</h6>"
     return "".join([s1, s2])
 
 
 def monitor_plants(curr_time: datetime) -> None:
+    """
+    This function monitors the plants and updates the dashboard with the latest sensor readings.
+
+    Args:
+        curr_time: The current time.
+    """
     if homeassistant_integration:
         client = mqtt.Client(clientname)
         client.username_pw_set(hass_username, hass_password)

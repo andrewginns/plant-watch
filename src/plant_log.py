@@ -15,12 +15,16 @@ import Adafruit_DHT
 import numpy as np
 from grove.adc import ADC
 
-from config import data_path, configured_sensors, moisture_pin, temp_humid_pin, homeassistant_integration
+from config import (configured_sensors, data_path, homeassistant_integration,
+                    moisture_pin, temp_humid_pin)
 
 if homeassistant_integration:
     import json
+
     import paho.mqtt.client as mqtt
-    from config import clientname, hostname, port, timeout, hass_username, hass_password, mqtt_topic_root
+
+    from config import (clientname, hass_password, hass_username, hostname,
+                        mqtt_topic_root, port, timeout)
 
 class GroveMoistureSensor:
     """
@@ -38,7 +42,7 @@ class GroveMoistureSensor:
         """
         Get the moisture strength value/voltage
         Returns:
-            (int): voltage, in mV
+            (float): Voltage in mV
         """
         value = self.adc.read_voltage(self.channel)
         return value
@@ -55,11 +59,21 @@ class GroveHumidityTemperatureSensor:
         self.dht = Adafruit_DHT
         self.sensor = Adafruit_DHT.DHT11
 
-    def temperature(self) -> float:
+    def temperature(self) -> int:
+        """
+        Get the temperature value
+        Returns:
+            (float): Temperature in C
+        """
         _, temperature = self.dht.read_retry(self.sensor, self.channel)
         return temperature
 
-    def humidity(self) -> float:
+    def humidity(self) -> int:
+        """
+        Get the humidity value
+        Returns:
+            (int): Humidity in %
+        """
         humidity, _ = self.dht.read_retry(self.sensor, self.channel)
         return humidity
 

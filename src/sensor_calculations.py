@@ -8,13 +8,8 @@ import plotly.express as px
 from scipy.interpolate.interpolate import interp1d
 from statsmodels.tsa.ar_model import AutoReg
 
-from config import (
-    configured_sensors,
-    data_path,
-    sensor_dry,
-    sensor_wet,
-    target_water_moisture,
-)
+from config import (configured_sensors, data_path, sensor_dry, sensor_wet,
+                    target_water_moisture)
 
 
 def update_data(sensor_str: str, sensor_val: float, current_time: datetime, sensor_dict: dict) -> pd.DataFrame:
