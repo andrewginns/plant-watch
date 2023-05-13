@@ -18,11 +18,21 @@ from config import (
 
 
 def update_data(sensor_str: str, sensor_val: float, current_time: datetime, sensor_dict: dict) -> pd.DataFrame:
-    """Add new data from sensor to the streamlit charts"""
+    """Add new data from sensor to the streamlit charts.
+
+    Args:
+        sensor_str (str): The name of the sensor.
+        sensor_val (float): The value of the sensor reading.
+        current_time (datetime): The current time.
+        sensor_dict (dict): A dictionary of sensor data.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the new data.
+    """
     add_df = pd.DataFrame.from_dict(
         {
             sensor_str: [sensor_val],
-            "timestamp": pd.to_datetime(str(current_time)).strftime(
+            "timestamp": pd.to_datetime(current_time).strftime(
                 "%Y-%m-%dT%H:%M:%S"
             ),
         }
@@ -39,6 +49,17 @@ def update_data(sensor_str: str, sensor_val: float, current_time: datetime, sens
 
 
 def add_scatter(sensor_dict: dict, sensor: str, added_rows: pd.DataFrame, fig: px.line) -> px.line:
+    """Add a scatter plot to the plotly graph objects.
+
+    Args:
+        sensor_dict (dict): A dictionary of sensor data.
+        sensor (str): The name of the sensor.
+        added_rows (pd.DataFrame): A DataFrame containing the new data.
+        fig (px.line): A plotly graph object.
+
+    Returns:
+        px.line: The updated plotly graph object.
+    """
     # TODO: Should probably be a call to a classes df object
     latest_df = sensor_dict[sensor][2].append(added_rows, ignore_index=True)
     # Add a scatter to the plotly graph objects
@@ -52,7 +73,14 @@ def add_scatter(sensor_dict: dict, sensor: str, added_rows: pd.DataFrame, fig: p
 
 
 def load_latest_data(file_path: Path) -> pd.DataFrame:
-    # Load data from the file used to store historical readings
+    """Load data from the file used to store historical readings.
+
+    Args:
+        file_path (Path): The path to the file.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the data.
+    """
     df = pd.read_csv(file_path).drop_duplicates().reset_index(drop=True)
 
     # Explicitly casting data column to float breaks chart updating
@@ -64,6 +92,14 @@ def load_latest_data(file_path: Path) -> pd.DataFrame:
 
 
 def load_latest_reading(sensor: str) -> float:
+    """Load the latest reading from the sensor.
+
+    Args:
+        sensor (str): The name of the sensor.
+
+    Returns:
+        float: The value of the latest reading.
+    """
     sensor_file = data_path / f"{sensor}_log.csv"
     last_val = pd.read_csv(sensor_file).tail(1)
     last_val["timestamp"] = pd.to_datetime(last_val["timestamp"])
@@ -71,6 +107,14 @@ def load_latest_reading(sensor: str) -> float:
 
 
 def calc_metrics(sensor_df: pd.DataFrame) -> str:
+    """Calculate the average values for the last 10, 50, and all readings.
+
+    Args:
+        sensor_df (pd.DataFrame): A DataFrame containing the sensor readings.
+
+    Returns:
+        str: A string containing the average values.
+    """
     last_10 = sensor_df.iloc[-10:].mean(numeric_only=True).values[0]
     last_50 = sensor_df.iloc[-50:].mean(numeric_only=True).values[0]
     all = sensor_df.mean(numeric_only=True).values[0]
@@ -80,11 +124,38 @@ def calc_metrics(sensor_df: pd.DataFrame) -> str:
     return output_df.to_string(index=False)
 
 
+# def convert_cap_to_moisture(reading: float, dry_val: int = sensor_dry, wet_val: int = sensor_wet) -> float:
+#     return interp1d([dry_val, wet_val], [0, 100], fill_value="extrapolate")(reading)
 def convert_cap_to_moisture(reading: float, dry_val: int = sensor_dry, wet_val: int = sensor_wet) -> float:
-    return interp1d([dry_val, wet_val], [0, 100], fill_value="extrapolate")(reading)
+    """
+    Convert a capacitance reading to a moisture percentage.
+
+    Args:
+        reading (float): The capacitance reading.
+        dry_val (int, optional): The capacitance value corresponding to a dry sensor. Defaults to `sensor_dry`.
+        wet_val (int, optional): The capacitance value corresponding to a wet sensor. Defaults to `sensor_wet`.
+
+    Returns:
+        float: The moisture percentage.
+    """
+
+    # Calculate the moisture percentage.
+    moisture_percentage = (reading - dry_val) / (wet_val - dry_val) * 100
+
+    return moisture_percentage
 
 
 def poll_sensors(sensor_dict: dict, available_sensors: dict) -> dict:
+    """
+    Poll the sensors and update the sensor_dict.
+
+    Args:
+        sensor_dict (dict): A dictionary of sensor data.
+        available_sensors (dict): A dictionary of available sensors.
+
+    Returns:
+        dict: The updated sensor_dict.
+    """
     # For each of the sensors read the value
     fig = px.line()
     new_vals = []
@@ -93,9 +164,7 @@ def poll_sensors(sensor_dict: dict, available_sensors: dict) -> dict:
 
         if sensor == "moisture":
             last_reading = load_latest_reading(sensor)
-            sensor_val = convert_cap_to_moisture(
-                last_reading[sensor].values[0]
-            ).flatten()[0]
+            sensor_val = convert_cap_to_moisture(last_reading[sensor].values[0]).flatten()[0]
         elif sensor == "temperature":
             last_reading = load_latest_reading(sensor)
             sensor_val = last_reading[sensor].values[0]
@@ -138,6 +207,15 @@ def poll_sensors(sensor_dict: dict, available_sensors: dict) -> dict:
 
 
 def calc_chart_limits(current_day: datetime) -> list:
+    """
+    Calculate the start and end dates for the chart.
+
+    Args:
+        current_day (datetime): The current date.
+
+    Returns:
+        list: A list of two datetime objects, the start and end dates for the chart.
+    """
     return (
         pd.to_datetime(
             [current_day - timedelta(days=7), current_day + timedelta(days=1)]
@@ -146,6 +224,15 @@ def calc_chart_limits(current_day: datetime) -> list:
 
 
 def calc_cycle(last_watered: datetime) -> Tuple[pd.DataFrame, datetime]:
+    """
+    Calculate the watering cycle for the given date.
+
+    Args:
+        last_watered (datetime): The last time the plant was watered.
+
+    Returns:
+        Tuple[pd.DataFrame, datetime]: A tuple of a DataFrame containing the watering cycle and the last watering date.
+    """
     moisture_df = load_latest_data(data_path / "moisture_log.csv")
     moisture_df["moisture"] = convert_cap_to_moisture(
         moisture_df["moisture"], sensor_dry, sensor_wet
@@ -170,6 +257,15 @@ def calc_cycle(last_watered: datetime) -> Tuple[pd.DataFrame, datetime]:
 
 
 def determine_last_watered(last_watered: datetime) -> datetime:
+    """
+    Determine the last time the plant was watered.
+
+    Args:
+        last_watered (datetime): The last time the plant was watered.
+
+    Returns:
+        datetime: The last time the plant was watered.
+    """
     cycle_df, last_watered = calc_cycle(last_watered)
     # Calculate difference
     cycle_df["diff"] = cycle_df["moisture"] - cycle_df.shift(1)["moisture"]
@@ -181,6 +277,15 @@ def determine_last_watered(last_watered: datetime) -> datetime:
 
 
 def determine_next_water(last_watered: datetime) -> Tuple[str, datetime]:
+    """
+    Predict the next time the plant needs to be watered.
+
+    Args:
+        last_watered (datetime): The last time the plant was watered.
+
+    Returns:
+        Tuple[str, datetime]: A tuple of a string indicating when the plant needs to be watered and the next watering date.
+    """
     print("\n\nPredicting next watering\n\n")
     # Filter the df from the last point it was watered
     cycle_df, last_watered = calc_cycle(last_watered)
