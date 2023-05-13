@@ -17,6 +17,16 @@ dashboard_update = 10
 # Prediction update frequency in loops (e.g. 5 mins per loop, 250 loops ~= 1 day)
 prediction_update = 25
 
+# Optional homeassistant integration
+homeassistant_integration = False
+clientname = "Malfoy"
+hostname = ''
+port = 1883
+timeout = 60
+hass_username = ""
+hass_password = ""
+mqtt_topic_root = "home/plants/malfoy/"
+
 ######################################################################################################
 # Sensor Config
 moisture_pin = 0
